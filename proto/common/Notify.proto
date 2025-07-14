@@ -1,0 +1,19 @@
+message S2C
+{
+	required int32 type = 1; //通知类型
+	optional GtwEvent event = 2; //事件通息
+	optional ProgramStatus programStatus = 3; //程序状态
+	optional ConnectStatus connectStatus = 4; //连接状态
+	optional QotRight qotRight = 5; //行情权限
+	optional APILevel apiLevel = 6; //用户等级，已在2.10版本之后废弃
+	optional APIQuota apiQuota = 7; //API 额度
+}
+
+message Response
+{
+	required int32 retType = 1 [default = -400]; //RetType,返回结果
+	optional string retMsg = 2;
+	optional int32 errCode = 3;
+	
+	optional S2C s2c = 4;
+}

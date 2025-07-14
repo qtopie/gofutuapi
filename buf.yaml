@@ -1,0 +1,13 @@
+version: v1beta1
+build:
+  excludes:
+    # - vendor
+  roots:
+    - proto
+lint:
+  use:
+    - DEFAULT
+    - COMMENTS
+breaking:
+  use:
+    - FILE

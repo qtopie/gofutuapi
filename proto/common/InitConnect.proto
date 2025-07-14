@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+package common;
+
+option go_package = ".;common";
+
+message C2S
+{
+    required int32 clientVer = 1; //客户端版本号，clientVer = "."以前的数 * 100 + "."以后的，举例：1.1版本的 clientVer 为1 * 100 + 1 = 101，2.21版本为2 * 100 + 21 = 221
+    required string clientID = 2; //客户端唯一标识，无生具体生成规则，客户端自己保证唯一性即可
+    optional bool recvNotify = 3; //此连接是否接收市场状态、交易需要重新解锁等等事件通知，true 代表接收，OpenD 就会向此连接推送这些通知，反之 false 代表不接收不推送
+    //如果通信要加密，首先得在 OpenD 和客户端都配置 RSA 密钥，不配置始终不加密
+    //如果配置了 RSA 密钥且指定的加密算法不为 PacketEncAlgo_None 则加密(即便这里不设置，配置了 RSA 密钥，也会采用默认加密方式)，默认采用 FTAES_ECB 算法
+    optional int32 packetEncAlgo = 4; //指定包加密算法，参见 Common.PacketEncAlgo 的枚举定义
+    optional int32 pushProtoFmt = 5; //指定这条连接上的推送协议格式，若不指定则使用 push_proto_type 配置项
+}
