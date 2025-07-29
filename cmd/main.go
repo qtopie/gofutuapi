@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"time"
 )
 
@@ -17,10 +19,38 @@ func main() {
 
 	fmt.Println("Connected to TCP server!")
 
-	// You can now send and receive data using conn.Write() and conn.Read()
-	// For example, sending a message:
-	_, err = conn.Write([]byte("Hello from Go client!"))
-	if err != nil {
-		log.Printf("Failed to send data: %v", err)
+	// Start a goroutine to read from the connection
+	go func() {
+		reader := bufio.NewReader(conn)
+		for {
+			data, err := reader.ReadString('\n')
+			if err != nil {
+				log.Printf("Read error: %v", err)
+				return
+			}
+			fmt.Printf("Received: %s", data)
+		}
+	}()
+
+	// Main goroutine writes user input to the connection
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("Type messages to send. Press Ctrl+C to exit.")
+	for scanner.Scan() {
+		text := scanner.Text() + "\n"
+		_, err := conn.Write([]byte(text))
+		if err != nil {
+			log.Printf("Write error: %v", err)
+			break
+		}
 	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("Input error: %v", err)
+	}
+
+	reader := bufio.NewReader(conn)
+	data, err := reader.Peek(1024) // Peek up to 1024 bytes
+	if err != nil {
+		// handle error (could be io.EOF or bufio.ErrBufferFull)
+	}
+	fmt.Printf("Peeked %d bytes\n", len(data))
 }
