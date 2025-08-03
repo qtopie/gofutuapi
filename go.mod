@@ -1,4 +1,4 @@
-module github.com/qtopie/go-futu-api
+module github.com/qtopie/gofutuapi
 
 go 1.24.4
 

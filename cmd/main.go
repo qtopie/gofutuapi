@@ -7,6 +7,13 @@ import (
 	"net"
 	"os"
 	"time"
+
+	"github.com/qtopie/gofutuapi/gen/common/initconnect"
+	"google.golang.org/protobuf/proto"
+)
+
+const (
+	headerSize = 2 + 4 + 1 + 1 + 4 + 4 + 20 + 8
 )
 
 func main() {
@@ -18,6 +25,28 @@ func main() {
 	defer conn.Close() // Ensure the connection is closed when done
 
 	fmt.Println("Connected to TCP server!")
+
+	reader := bufio.NewReader(conn)
+	data, err := reader.Peek(1024) // Peek up to 1024 bytes
+	if err != nil {
+		// handle error (could be io.EOF or bufio.ErrBufferFull)
+	}
+	fmt.Printf("Peeked %d bytes\n", len(data))
+	
+	writer := bufio.NewWriter(conn)
+
+	msg := &initconnect.C2S{}
+	data, err = proto.Marshal(msg)
+	if err != nil {
+		panic(err)
+	}
+	initData := make([]byte, 0)
+	
+	_, err = writer.Write(initData)
+	if err != nil {
+		panic(err)
+	}
+
 
 	// Start a goroutine to read from the connection
 	go func() {
@@ -47,10 +76,5 @@ func main() {
 		log.Printf("Input error: %v", err)
 	}
 
-	reader := bufio.NewReader(conn)
-	data, err := reader.Peek(1024) // Peek up to 1024 bytes
-	if err != nil {
-		// handle error (could be io.EOF or bufio.ErrBufferFull)
-	}
-	fmt.Printf("Peeked %d bytes\n", len(data))
+	
 }

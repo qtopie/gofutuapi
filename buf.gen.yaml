@@ -1,5 +1,7 @@
-version: v1beta1
+version: v2
 plugins:
-  - name: go
-    out: gen/go
+  - remote: buf.build/protocolbuffers/go
+    out: gen
     opt: paths=source_relative
+inputs:
+  - directory: proto
