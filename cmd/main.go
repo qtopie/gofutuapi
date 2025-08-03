@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/qtopie/gofutuapi"
 	"github.com/qtopie/gofutuapi/gen/common/initconnect"
 	"google.golang.org/protobuf/proto"
 )
@@ -32,21 +33,30 @@ func main() {
 		// handle error (could be io.EOF or bufio.ErrBufferFull)
 	}
 	fmt.Printf("Peeked %d bytes\n", len(data))
-	
+
 	writer := bufio.NewWriter(conn)
 
+	// construct init msg
 	msg := &initconnect.C2S{}
-	data, err = proto.Marshal(msg)
+	body, err := proto.Marshal(msg)
 	if err != nil {
 		panic(err)
 	}
-	initData := make([]byte, 0)
-	
+
+	header := gofutuapi.NewHeader()
+	header.ProtoID = 1001
+	header.ProtoFmtType = 0
+	header.ProtoVer = 0
+	header.SerialNo = 1
+	header.CalcBodyInfo(body)
+
+	headBytes := header.ToBytes()
+
+	initData := append(headBytes, body...)
 	_, err = writer.Write(initData)
 	if err != nil {
 		panic(err)
 	}
-
 
 	// Start a goroutine to read from the connection
 	go func() {
@@ -76,5 +86,4 @@ func main() {
 		log.Printf("Input error: %v", err)
 	}
 
-	
 }
