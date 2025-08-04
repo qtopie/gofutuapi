@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -79,23 +80,30 @@ func main() {
 	if err = writer.Flush(); err != nil {
 		panic(err)
 	}
-	log.Println("written data to channel", initData, len(initData))
+	log.Println("written data to server")
 
 	// Start a goroutine to read from the connection
 	go func() {
 		reader := bufio.NewReader(conn)
-		for n := reader.Buffered(); n < gofutuapi.HEADER_SIZE; n = reader.Buffered() {
-			if n > 0 {
-				fmt.Println("buffered size", n)
+		buffer := make([]byte, 1024) // A buffer for reading from the network
+		for {
+			// Attempt to read data into the buffer
+			n, err := reader.Read(buffer) // Read data from the connection (through the buffered reader)
+			if err != nil {
+				if err == io.EOF {
+					fmt.Println("Connection closed by remote host")
+				} else {
+					fmt.Println("Error reading:", err)
+				}
+				break
 			}
-			time.Sleep(100 * time.Millisecond)
+
+			if n >= gofutuapi.HEADER_SIZE {
+				h := gofutuapi.ParseHeader(buffer[0:gofutuapi.HEADER_SIZE])
+				fmt.Println("received", h.ProtoID)
+			}
+
 		}
-		data, err := reader.Peek(gofutuapi.HEADER_SIZE)
-		if err != nil {
-			panic(err)
-		}
-		h := gofutuapi.ParseHeader(data[0:44])
-		fmt.Println(h.ProtoID)
 	}()
 
 	sig := <-sigChan
