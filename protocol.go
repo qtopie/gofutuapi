@@ -1,6 +1,9 @@
 package gofutuapi
 
-import "encoding/binary"
+import (
+	"crypto/sha1"
+	"encoding/binary"
+)
 
 const (
 	HEADER_SIZE  = 2 + 4 + 1 + 1 + 4 + 4 + 20 + 8
@@ -25,9 +28,26 @@ func NewHeader() *ProtoHeader {
 	return header
 }
 
-func (h *ProtoHeader) CalcBodyInfo(b []byte) {
+func ParseHeader(data []byte) *ProtoHeader {
+	if len(data) != HEADER_SIZE {
+		panic("unmatched header size")
+	}
+	
+	header := NewHeader()
+
+	header.ProtoID = bytesToInt32(data[2:6])
+	header.ProtoFmtType = data[6]
+	header.ProtoVer = data[7]
+	header.SerialNo = bytesToInt32(data[8:12])
+	header.bodyLen = bytesToInt32(data[12:16])
+	copy(header.arrBodySHA1[:], data[16:36])
+	copy(header.arrReserved[:], data[36:])
+	return header
+}
+
+func (h *ProtoHeader) UpdateBodyInfo(b []byte) {
 	h.bodyLen = int32(len(b))
-	h.arrBodySHA1 = [20]byte{}
+	h.arrBodySHA1 = sha1.Sum(b)
 }
 
 func (h *ProtoHeader) ToBytes() []byte {
@@ -49,4 +69,8 @@ func int32ToBytes(n int32) []byte {
 	binary.LittleEndian.PutUint32(b, uint32(n))
 
 	return b
+}
+
+func bytesToInt32(b []byte) int32 {
+	return int32(binary.LittleEndian.Uint32(b[:]))
 }
