@@ -85,25 +85,14 @@ func main() {
 	// Start a goroutine to read from the connection
 	go func() {
 		reader := bufio.NewReader(conn)
-		buffer := make([]byte, 1024) // A buffer for reading from the network
-		for {
-			// Attempt to read data into the buffer
-			n, err := reader.Read(buffer) // Read data from the connection (through the buffered reader)
-			if err != nil {
-				if err == io.EOF {
-					fmt.Println("Connection closed by remote host")
-				} else {
-					fmt.Println("Error reading:", err)
-				}
-				break
-			}
-
-			if n >= gofutuapi.HEADER_SIZE {
-				h := gofutuapi.ParseHeader(buffer[0:gofutuapi.HEADER_SIZE])
-				fmt.Println("received", h.ProtoID)
-			}
-
+		buffer := make([]byte, gofutuapi.HEADER_SIZE) // A buffer for reading from the network
+		_, err := io.ReadFull(reader, buffer)
+		if err != nil {
+			panic(err)
 		}
+		
+		h := gofutuapi.ParseHeader(buffer[0:gofutuapi.HEADER_SIZE])
+		fmt.Println("received", h.ProtoID)
 	}()
 
 	sig := <-sigChan
