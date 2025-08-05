@@ -16,10 +16,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-const (
-	headerSize = 2 + 4 + 1 + 1 + 4 + 4 + 20 + 8
-)
-
 var (
 	clientID            = ""
 	clientVer           = int32(0)
@@ -90,9 +86,16 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		
+
 		h := gofutuapi.ParseHeader(buffer[0:gofutuapi.HEADER_SIZE])
 		fmt.Println("received", h.ProtoID)
+
+		payload := make([]byte, h.BodyLen)
+		_, err = io.ReadFull(reader, payload)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(payload)
 	}()
 
 	sig := <-sigChan
