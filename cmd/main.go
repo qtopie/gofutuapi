@@ -49,14 +49,16 @@ func main() {
 	msg.PacketEncAlgo = &packetEncAlgo
 	msg.PushProtoFmt = &pushProtoFmt
 	msg.ProgrammingLanguage = &programmingLanguage
+	req := &initconnect.Request{}
+	req.C2S = msg
 
-	body, err := proto.Marshal(msg)
+	body, err := proto.Marshal(req)
 	if err != nil {
 		panic(err)
 	}
 
-	// Protobuf Tags
-	body = append([]byte{10, 25}, body...)
+
+	// body = append([]byte{10, 25}, body...)
 	log.Println("body", body)
 
 	header := gofutuapi.NewHeader()
@@ -96,6 +98,13 @@ func main() {
 			panic(err)
 		}
 		fmt.Println(payload)
+
+		var resp initconnect.Response
+		err = proto.Unmarshal(payload, &resp)
+		if err != nil {
+			panic(err)
+		}
+		log.Println(resp.String())
 	}()
 
 	sig := <-sigChan
