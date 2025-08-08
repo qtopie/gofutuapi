@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,16 +26,15 @@ var (
 )
 
 func main() {
-	// Connect to a TCP server (e.g., localhost:8080)
-	conn, err := net.DialTimeout("tcp", "localhost:11111", 5*time.Second)
+	conn, err := gofutuapi.Open(nil, gofutuapi.FutuApiOption{
+		Address: "localhost:11111",
+		Timeout: 5 * time.Second,
+	})
 	if err != nil {
 		log.Fatalf("Failed to connect: %v", err)
 	}
 	defer conn.Close() // Ensure the connection is closed when done
 
-	fmt.Println("Connected to TCP server!")
-
-	// Handle signals for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 

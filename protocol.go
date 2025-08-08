@@ -162,7 +162,6 @@ func IsPushProto(protoID int) bool {
 	}
 }
 
-
 type ProtoHeader struct {
 	szHeaderFlag [2]byte
 	ProtoID      int32
@@ -226,4 +225,9 @@ func int32ToBytes(n int32) []byte {
 
 func bytesToInt32(b []byte) int32 {
 	return int32(binary.LittleEndian.Uint32(b[:]))
+}
+
+type ProtoResponse struct {
+	Header  ProtoHeader
+	Payload []byte
 }
