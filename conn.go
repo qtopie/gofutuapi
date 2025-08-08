@@ -85,7 +85,7 @@ func (conn *FutuApiConn) initConnect() error {
 
 func (conn *FutuApiConn) keepalive() {
 	// todo update ticker time with server response
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(5000 * time.Millisecond)
 
 	for {
 		select {
@@ -139,42 +139,47 @@ func (conn *FutuApiConn) NextReplyPacket() *ProtoResponse {
 
 func (conn *FutuApiConn) handleResponsePacket() {
 	for {
-		buffer := make([]byte, HEADER_SIZE)
-		_, err := io.ReadFull(conn.Conn, buffer)
-		if err != nil {
-			panic(err)
-		}
-
-		h := ParseHeader(buffer[:])
-		payload := make([]byte, h.BodyLen)
-		_, err = io.ReadFull(conn.Conn, payload)
-		if err != nil {
-			panic(err)
-		}
-
-		if h.ProtoID == INIT_CONNECT {
-			// if fail, log and exit
-
-			go conn.keepalive()
+		select {
+		case <-conn.Done():
 			return
-		}
+		default:
+			buffer := make([]byte, HEADER_SIZE)
+			_, err := io.ReadFull(conn.Conn, buffer)
+			if err != nil {
+				panic(err)
+			}
 
-		if h.ProtoID == KEEP_ALIVE {
-			// if fail, log and try again
+			h := ParseHeader(buffer[:])
+			payload := make([]byte, h.BodyLen)
+			_, err = io.ReadFull(conn.Conn, payload)
+			if err != nil {
+				panic(err)
+			}
 
-			return
-		}
+			if h.ProtoID == INIT_CONNECT {
+				// if fail, log and exit
 
-		if IsPushProto(int(h.ProtoID)) {
-			// TODO: push listener
-			// conn.pushQueue <- &ProtoResponse{
-			// 	Header:  *h,
-			// 	Payload: payload,
-			// }
-		} else {
-			conn.replyQueue <- &ProtoResponse{
-				Header:  *h,
-				Payload: payload,
+				go conn.keepalive()
+				return
+			}
+
+			if h.ProtoID == KEEP_ALIVE {
+				// if fail, log and try again
+
+				return
+			}
+
+			if IsPushProto(int(h.ProtoID)) {
+				// TODO: push listener
+				// conn.pushQueue <- &ProtoResponse{
+				// 	Header:  *h,
+				// 	Payload: payload,
+				// }
+			} else {
+				conn.replyQueue <- &ProtoResponse{
+					Header:  *h,
+					Payload: payload,
+				}
 			}
 		}
 
