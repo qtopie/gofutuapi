@@ -37,7 +37,8 @@ type FutuApiConn struct {
 	replyQueue chan *ProtoResponse
 	pushQueue  chan *ProtoResponse
 
-	nextPacketSN chan int
+	connId       uint64
+	nextPacketSN int32
 
 	mu    sync.Mutex
 	rw    io.ReadWriteCloser
@@ -56,6 +57,7 @@ func Open(context context.Context, option FutuApiOption) (*FutuApiConn, error) {
 
 	c.Conn = conn
 	c.rw = c.Conn
+	c.nextPacketSN = 1
 
 	err = c.initConnect()
 	if err != nil {
@@ -83,9 +85,9 @@ func (conn *FutuApiConn) initConnect() error {
 	return nil
 }
 
-func (conn *FutuApiConn) keepalive() {
-	// todo update ticker time with server response
-	ticker := time.NewTicker(5000 * time.Millisecond)
+func (conn *FutuApiConn) keepalive(interval int) {
+	// update ticker time with server response
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 
 	for {
 		select {
@@ -110,7 +112,7 @@ func (conn *FutuApiConn) SendProto(protoId int, req proto.Message) int {
 	header.ProtoID = int32(protoId)
 	header.ProtoFmtType = 0
 	header.ProtoVer = 0
-	header.SerialNo = 1
+	header.SerialNo = conn.nextPacketSN
 
 	payload, err := proto.Marshal(req)
 	if err != nil {
@@ -124,12 +126,15 @@ func (conn *FutuApiConn) SendProto(protoId int, req proto.Message) int {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("written data to server")
+	log.Println("written data to server with protoId", protoId)
+
+	conn.nextPacketSN++
 
 	return n
 }
 
 func (conn *FutuApiConn) Close() error {
+	log.Println("closing connection", conn.connId)
 	return conn.Conn.Close()
 }
 
@@ -138,11 +143,14 @@ func (conn *FutuApiConn) NextReplyPacket() *ProtoResponse {
 }
 
 func (conn *FutuApiConn) handleResponsePacket() {
+	// update ticker time with server response
+	ticker := time.NewTicker(time.Duration(100) * time.Millisecond)
+
 	for {
 		select {
 		case <-conn.Done():
 			return
-		default:
+		case <-ticker.C:
 			buffer := make([]byte, HEADER_SIZE)
 			_, err := io.ReadFull(conn.Conn, buffer)
 			if err != nil {
@@ -156,9 +164,24 @@ func (conn *FutuApiConn) handleResponsePacket() {
 				panic(err)
 			}
 
+			// check response success or not
+			log.Println(payload)
+
 			if h.ProtoID == INIT_CONNECT {
 				// if fail, log and exit
-				go conn.keepalive()
+				var resp initconnect.Response
+				err = proto.Unmarshal(payload, &resp)
+				if err != nil {
+					panic(err)
+				}
+				if *resp.RetType == 0 {
+					conn.connId = *resp.S2C.ConnID
+					interval := int(*resp.S2C.KeepAliveInterval)
+					go conn.keepalive(interval)
+				} else {
+					log.Fatalln(resp.String())
+				}
+
 				return
 			}
 

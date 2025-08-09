@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -12,9 +13,6 @@ import (
 )
 
 func main() {
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
@@ -27,10 +25,9 @@ func main() {
 	}
 	defer conn.Close() // Ensure the connection is closed when done
 
-	resp := conn.NextReplyPacket()
-	log.Println(resp)
+	// resp := conn.NextReplyPacket()
+	// log.Println(resp)
 
-	sig := <-sigChan
-	log.Printf("Received signal: %v", sig)
 	<-ctx.Done()
+	fmt.Println("Main goroutine exiting.")
 }
