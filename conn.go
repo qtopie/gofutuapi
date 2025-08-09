@@ -104,10 +104,10 @@ func (conn *FutuApiConn) keepalive() {
 
 }
 
-// sendProto sends protobuf data to futu OpenD server
-func (conn *FutuApiConn) SendProto(protoId int32, req proto.Message) int {
+// SendProto sends protobuf data to futu OpenD server
+func (conn *FutuApiConn) SendProto(protoId int, req proto.Message) int {
 	header := NewHeader()
-	header.ProtoID = protoId
+	header.ProtoID = int32(protoId)
 	header.ProtoFmtType = 0
 	header.ProtoVer = 0
 	header.SerialNo = 1
@@ -158,7 +158,6 @@ func (conn *FutuApiConn) handleResponsePacket() {
 
 			if h.ProtoID == INIT_CONNECT {
 				// if fail, log and exit
-
 				go conn.keepalive()
 				return
 			}
