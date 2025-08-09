@@ -228,6 +228,8 @@ func bytesToInt32(b []byte) int32 {
 }
 
 type ProtoResponse struct {
-	Header  ProtoHeader
-	Payload []byte
+	Header   ProtoHeader
+	Payload  []byte
+	SerialNo uint32
+	RetType  int
 }

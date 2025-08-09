@@ -122,15 +122,15 @@ func (conn *FutuApiConn) SendProto(protoId int, req proto.Message) int {
 	header.UpdateBodyInfo(payload)
 
 	data := append(header.ToBytes(), payload...)
-	n, err := conn.rw.Write(data)
+	_, err = conn.rw.Write(data)
 	if err != nil {
 		panic(err)
 	}
 	log.Println("written data to server with protoId", protoId)
 
+	// TODO thread-safe
 	conn.nextPacketSN++
-
-	return n
+	return int(conn.nextPacketSN - 1)
 }
 
 func (conn *FutuApiConn) Close() error {
