@@ -95,7 +95,7 @@ func main() {
 	}
 	subOrUnSub := true
 	regOrUnRegPush := true
-	firstPush := true
+	firstPush := false
 	unSubAll := false
 	subOrderBookDetail := false
 	extendedTime := false
@@ -112,7 +112,7 @@ func main() {
 			},
 			IsSubOrUnSub:         &subOrUnSub,
 			IsRegOrUnRegPush:     &regOrUnRegPush,
-			RegPushRehabTypeList: []int32{},
+			RegPushRehabTypeList: []int32{int32(qotcommon.RehabType_RehabType_Forward)},
 			IsFirstPush:          &firstPush,
 			IsUnsubAll:           &unSubAll,
 			IsSubOrderBookDetail: &subOrderBookDetail,
@@ -148,16 +148,19 @@ func main() {
 	}
 
 	// 历史k线获取
+	maxAckKlNum := int32(10)
+	nextReqKey := []byte("阿里巴巴-W")
 	currentTime := time.Now()
-	beginTime, endTime := currentTime.Add(-time.Hour*24*30).Format(time.DateOnly), currentTime.Add(-time.Hour*24*7).Format(time.DateOnly)
-	log.Println(beginTime, endTime)
+	beginTime, endTime := currentTime.Add(-time.Hour*24*30).Format(time.DateOnly), currentTime.Format(time.DateOnly)
 	historyKlReq := qotrequesthistorykl.Request{
 		C2S: &qotrequesthistorykl.C2S{
-			RehabType: &rehabType,
-			KlType:    &klType,
-			Security:  &alibabaSecurity,
-			BeginTime: &beginTime,
-			EndTime:   &endTime,
+			RehabType:   &rehabType,
+			KlType:      &klType,
+			Security:    &alibabaSecurity,
+			BeginTime:   &beginTime,
+			EndTime:     &endTime,
+			MaxAckKLNum: &maxAckKlNum,
+			NextReqKey: nextReqKey,
 		},
 	}
 	conn.SendProto(gofutuapi.QOT_REQUESTHISTORYKL, &historyKlReq)
