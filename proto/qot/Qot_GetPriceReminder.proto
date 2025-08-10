@@ -4,7 +4,7 @@ option java_package = "com.futu.openapi.pb";
 option go_package = "github.com/qtopie/gofutuapi/gen/qot/qotgetpricereminder";
 
 import "common/Common.proto";
-import "qot/Qot_Common.proto";
+import "qot/common/Qot_Common.proto";
 
 // 提醒信息列表
 message PriceReminderItem

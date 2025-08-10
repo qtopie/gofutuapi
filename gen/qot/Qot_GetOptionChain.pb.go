@@ -7,8 +7,8 @@
 package qotgetoptionchain
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -632,7 +632,7 @@ var File_qot_Qot_GetOptionChain_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetOptionChain_proto_rawDesc = "" +
 	"\n" +
-	"\x1cqot/Qot_GetOptionChain.proto\x12\x12Qot_GetOptionChain\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"\xe4\x04\n" +
+	"\x1cqot/Qot_GetOptionChain.proto\x12\x12Qot_GetOptionChain\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\xe4\x04\n" +
 	"\n" +
 	"DataFilter\x122\n" +
 	"\x14impliedVolatilityMin\x18\x01 \x01(\x01R\x14impliedVolatilityMin\x122\n" +

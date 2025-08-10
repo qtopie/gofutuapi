@@ -7,8 +7,8 @@
 package qotrequesthistorykl
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -328,7 +328,7 @@ var File_qot_Qot_RequestHistoryKL_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_RequestHistoryKL_proto_rawDesc = "" +
 	"\n" +
-	"\x1eqot/Qot_RequestHistoryKL.proto\x12\x14Qot_RequestHistoryKL\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"\xd1\x02\n" +
+	"\x1eqot/Qot_RequestHistoryKL.proto\x12\x14Qot_RequestHistoryKL\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\xd1\x02\n" +
 	"\x03C2S\x12\x1c\n" +
 	"\trehabType\x18\x01 \x02(\x05R\trehabType\x12\x16\n" +
 	"\x06klType\x18\x02 \x02(\x05R\x06klType\x120\n" +

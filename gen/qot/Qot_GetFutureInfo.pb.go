@@ -7,8 +7,8 @@
 package qotgetfutureinfo
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -466,7 +466,7 @@ var File_qot_Qot_GetFutureInfo_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetFutureInfo_proto_rawDesc = "" +
 	"\n" +
-	"\x1bqot/Qot_GetFutureInfo.proto\x12\x11Qot_GetFutureInfo\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"3\n" +
+	"\x1bqot/Qot_GetFutureInfo.proto\x12\x11Qot_GetFutureInfo\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"3\n" +
 	"\tTradeTime\x12\x14\n" +
 	"\x05begin\x18\x01 \x01(\x01R\x05begin\x12\x10\n" +
 	"\x03end\x18\x02 \x01(\x01R\x03end\"\xb4\x05\n" +

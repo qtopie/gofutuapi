@@ -4,7 +4,7 @@ option java_package = "com.futu.openapi.pb";
 option go_package = "github.com/qtopie/gofutuapi/gen/qot/qotgetownerplate";
 
 import "common/Common.proto";
-import "qot/Qot_Common.proto";
+import "qot/common/Qot_Common.proto";
 
 message C2S
 {

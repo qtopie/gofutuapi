@@ -7,8 +7,8 @@
 package qotrequesthistoryklquota
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -316,7 +316,7 @@ var File_qot_Qot_RequestHistoryKLQuota_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_RequestHistoryKLQuota_proto_rawDesc = "" +
 	"\n" +
-	"#qot/Qot_RequestHistoryKLQuota.proto\x12\x19Qot_RequestHistoryKLQuota\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"\xa0\x01\n" +
+	"#qot/Qot_RequestHistoryKLQuota.proto\x12\x19Qot_RequestHistoryKLQuota\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\xa0\x01\n" +
 	"\n" +
 	"DetailItem\x120\n" +
 	"\bsecurity\x18\x01 \x02(\v2\x14.Qot_Common.SecurityR\bsecurity\x12\x12\n" +

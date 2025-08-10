@@ -7,8 +7,8 @@
 package getoptionexpirationdate
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -308,7 +308,7 @@ var File_qot_Qot_GetOptionExpirationDate_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetOptionExpirationDate_proto_rawDesc = "" +
 	"\n" +
-	"%qot/Qot_GetOptionExpirationDate.proto\x12\x1bQot_GetOptionExpirationDate\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"[\n" +
+	"%qot/Qot_GetOptionExpirationDate.proto\x12\x1bQot_GetOptionExpirationDate\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"[\n" +
 	"\x03C2S\x12*\n" +
 	"\x05owner\x18\x01 \x02(\v2\x14.Qot_Common.SecurityR\x05owner\x12(\n" +
 	"\x0findexOptionType\x18\x02 \x01(\x05R\x0findexOptionType\"\xb2\x01\n" +

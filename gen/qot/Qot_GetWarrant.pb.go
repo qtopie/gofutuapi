@@ -7,8 +7,8 @@
 package qotgetwarrant
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -911,7 +911,7 @@ var File_qot_Qot_GetWarrant_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetWarrant_proto_rawDesc = "" +
 	"\n" +
-	"\x18qot/Qot_GetWarrant.proto\x12\x0eQot_GetWarrant\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"\x93\t\n" +
+	"\x18qot/Qot_GetWarrant.proto\x12\x0eQot_GetWarrant\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\x93\t\n" +
 	"\x03C2S\x12\x14\n" +
 	"\x05begin\x18\x01 \x02(\x05R\x05begin\x12\x10\n" +
 	"\x03num\x18\x02 \x02(\x05R\x03num\x12\x1c\n" +

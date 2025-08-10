@@ -7,8 +7,8 @@
 package qotgetcapitaldistribution
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -304,7 +304,7 @@ var File_qot_Qot_GetCapitalDistribution_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetCapitalDistribution_proto_rawDesc = "" +
 	"\n" +
-	"$qot/Qot_GetCapitalDistribution.proto\x12\x1aQot_GetCapitalDistribution\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"7\n" +
+	"$qot/Qot_GetCapitalDistribution.proto\x12\x1aQot_GetCapitalDistribution\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"7\n" +
 	"\x03C2S\x120\n" +
 	"\bsecurity\x18\x01 \x02(\v2\x14.Qot_Common.SecurityR\bsecurity\"\x87\x03\n" +
 	"\x03S2C\x12&\n" +

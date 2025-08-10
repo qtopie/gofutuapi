@@ -7,8 +7,8 @@
 package qotgetplatesecurity
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -248,7 +248,7 @@ var File_qot_Qot_GetPlateSecurity_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetPlateSecurity_proto_rawDesc = "" +
 	"\n" +
-	"\x1eqot/Qot_GetPlateSecurity.proto\x12\x14Qot_GetPlateSecurity\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"g\n" +
+	"\x1eqot/Qot_GetPlateSecurity.proto\x12\x14Qot_GetPlateSecurity\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"g\n" +
 	"\x03C2S\x12*\n" +
 	"\x05plate\x18\x01 \x02(\v2\x14.Qot_Common.SecurityR\x05plate\x12\x1c\n" +
 	"\tsortField\x18\x02 \x01(\x05R\tsortField\x12\x16\n" +

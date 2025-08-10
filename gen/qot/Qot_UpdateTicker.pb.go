@@ -7,8 +7,8 @@
 package qotupdateticker
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -160,7 +160,7 @@ var File_qot_Qot_UpdateTicker_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_UpdateTicker_proto_rawDesc = "" +
 	"\n" +
-	"\x1aqot/Qot_UpdateTicker.proto\x12\x10Qot_UpdateTicker\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"\x7f\n" +
+	"\x1aqot/Qot_UpdateTicker.proto\x12\x10Qot_UpdateTicker\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\x7f\n" +
 	"\x03S2C\x120\n" +
 	"\bsecurity\x18\x01 \x02(\v2\x14.Qot_Common.SecurityR\bsecurity\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x122\n" +

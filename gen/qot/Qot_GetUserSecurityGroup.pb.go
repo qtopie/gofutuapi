@@ -7,8 +7,8 @@
 package qotgetusersecuritygroup
 
 import (
-	_ "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	_ "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -347,7 +347,7 @@ var File_qot_Qot_GetUserSecurityGroup_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetUserSecurityGroup_proto_rawDesc = "" +
 	"\n" +
-	"\"qot/Qot_GetUserSecurityGroup.proto\x12\x18Qot_GetUserSecurityGroup\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"#\n" +
+	"\"qot/Qot_GetUserSecurityGroup.proto\x12\x18Qot_GetUserSecurityGroup\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"#\n" +
 	"\x03C2S\x12\x1c\n" +
 	"\tgroupType\x18\x01 \x02(\x05R\tgroupType\"G\n" +
 	"\tGroupData\x12\x1c\n" +

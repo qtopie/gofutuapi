@@ -7,8 +7,8 @@
 package qotmodifyusersecurity
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -302,7 +302,7 @@ var File_qot_Qot_ModifyUserSecurity_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_ModifyUserSecurity_proto_rawDesc = "" +
 	"\n" +
-	" qot/Qot_ModifyUserSecurity.proto\x12\x16Qot_ModifyUserSecurity\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"m\n" +
+	" qot/Qot_ModifyUserSecurity.proto\x12\x16Qot_ModifyUserSecurity\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"m\n" +
 	"\x03C2S\x12\x1c\n" +
 	"\tgroupName\x18\x01 \x02(\tR\tgroupName\x12\x0e\n" +
 	"\x02op\x18\x02 \x02(\x05R\x02op\x128\n" +

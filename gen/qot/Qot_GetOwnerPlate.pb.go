@@ -7,8 +7,8 @@
 package qotgetownerplate
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -292,7 +292,7 @@ var File_qot_Qot_GetOwnerPlate_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetOwnerPlate_proto_rawDesc = "" +
 	"\n" +
-	"\x1bqot/Qot_GetOwnerPlate.proto\x12\x11Qot_GetOwnerPlate\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"?\n" +
+	"\x1bqot/Qot_GetOwnerPlate.proto\x12\x11Qot_GetOwnerPlate\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"?\n" +
 	"\x03C2S\x128\n" +
 	"\fsecurityList\x18\x01 \x03(\v2\x14.Qot_Common.SecurityR\fsecurityList\"\x97\x01\n" +
 	"\x12SecurityOwnerPlate\x120\n" +

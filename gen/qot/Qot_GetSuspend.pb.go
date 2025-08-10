@@ -7,8 +7,8 @@
 package qotgetsuspend
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -352,7 +352,7 @@ var File_qot_Qot_GetSuspend_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetSuspend_proto_rawDesc = "" +
 	"\n" +
-	"\x18qot/Qot_GetSuspend.proto\x12\x0eQot_GetSuspend\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"w\n" +
+	"\x18qot/Qot_GetSuspend.proto\x12\x0eQot_GetSuspend\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"w\n" +
 	"\x03C2S\x128\n" +
 	"\fsecurityList\x18\x01 \x03(\v2\x14.Qot_Common.SecurityR\fsecurityList\x12\x1c\n" +
 	"\tbeginTime\x18\x02 \x02(\tR\tbeginTime\x12\x18\n" +

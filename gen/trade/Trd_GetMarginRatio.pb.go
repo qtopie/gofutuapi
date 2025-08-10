@@ -7,8 +7,8 @@
 package trdgetmarginratio
 
 import (
-	common "./qot/common"
 	common1 "./trd/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -389,7 +389,7 @@ var File_trade_Trd_GetMarginRatio_proto protoreflect.FileDescriptor
 
 const file_trade_Trd_GetMarginRatio_proto_rawDesc = "" +
 	"\n" +
-	"\x1etrade/Trd_GetMarginRatio.proto\x12\x12Trd_GetMarginRatio\x1a\x16trade/Trd_Common.proto\x1a\x14qot/Qot_Common.proto\"\x83\x04\n" +
+	"\x1etrade/Trd_GetMarginRatio.proto\x12\x12Trd_GetMarginRatio\x1a\x16trade/Trd_Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\x83\x04\n" +
 	"\x0fMarginRatioInfo\x120\n" +
 	"\bsecurity\x18\x01 \x02(\v2\x14.Qot_Common.SecurityR\bsecurity\x12\"\n" +
 	"\fisLongPermit\x18\x02 \x01(\bR\fisLongPermit\x12$\n" +

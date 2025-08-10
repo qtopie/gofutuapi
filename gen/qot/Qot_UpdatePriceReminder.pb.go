@@ -7,8 +7,8 @@
 package qotupdatepricereminder
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -224,7 +224,7 @@ var File_qot_Qot_UpdatePriceReminder_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_UpdatePriceReminder_proto_rawDesc = "" +
 	"\n" +
-	"!qot/Qot_UpdatePriceReminder.proto\x12\x17Qot_UpdatePriceReminder\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"\xb1\x02\n" +
+	"!qot/Qot_UpdatePriceReminder.proto\x12\x17Qot_UpdatePriceReminder\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\xb1\x02\n" +
 	"\x03S2C\x120\n" +
 	"\bsecurity\x18\x01 \x02(\v2\x14.Qot_Common.SecurityR\bsecurity\x12\x12\n" +
 	"\x04name\x18\v \x01(\tR\x04name\x12\x14\n" +

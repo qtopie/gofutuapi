@@ -7,8 +7,8 @@
 package qotgetstaticinfo
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -249,7 +249,7 @@ var File_qot_Qot_GetStaticInfo_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_GetStaticInfo_proto_rawDesc = "" +
 	"\n" +
-	"\x1bqot/Qot_GetStaticInfo.proto\x12\x11Qot_GetStaticInfo\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"q\n" +
+	"\x1bqot/Qot_GetStaticInfo.proto\x12\x11Qot_GetStaticInfo\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"q\n" +
 	"\x03C2S\x12\x16\n" +
 	"\x06market\x18\x01 \x01(\x05R\x06market\x12\x18\n" +
 	"\asecType\x18\x02 \x01(\x05R\asecType\x128\n" +

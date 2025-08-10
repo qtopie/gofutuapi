@@ -7,8 +7,8 @@
 package qotregqotpush
 
 import (
-	common "./qot/common"
 	_ "github.com/qtopie/gofutuapi/gen/common"
+	common "github.com/qtopie/gofutuapi/gen/qot/common"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -256,7 +256,7 @@ var File_qot_Qot_RegQotPush_proto protoreflect.FileDescriptor
 
 const file_qot_Qot_RegQotPush_proto_rawDesc = "" +
 	"\n" +
-	"\x18qot/Qot_RegQotPush.proto\x12\x0eQot_RegQotPush\x1a\x13common/Common.proto\x1a\x14qot/Qot_Common.proto\"\xcd\x01\n" +
+	"\x18qot/Qot_RegQotPush.proto\x12\x0eQot_RegQotPush\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\xcd\x01\n" +
 	"\x03C2S\x128\n" +
 	"\fsecurityList\x18\x01 \x03(\v2\x14.Qot_Common.SecurityR\fsecurityList\x12 \n" +
 	"\vsubTypeList\x18\x02 \x03(\x05R\vsubTypeList\x12$\n" +
