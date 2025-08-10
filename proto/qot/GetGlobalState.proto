@@ -3,7 +3,7 @@ package GetGlobalState;
 option java_package = "com.futu.openapi.pb";
 option go_package = "./getglobalstate";
 
-import "Common.proto";
+import "common/Common.proto";
 import "qot/Qot_Common.proto";
 
 

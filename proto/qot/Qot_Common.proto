@@ -3,7 +3,7 @@ package Qot_Common;
 option java_package = "com.futu.openapi.pb";
 option go_package = "./qot/common";
 
-import "Common.proto";
+import "common/Common.proto";
 
 enum QotMarket
 {

@@ -50,8 +50,6 @@ func main() {
 		log.Println(resp.String())
 	}
 
-	subReq := 
-
 	<-ctx.Done()
 	fmt.Println("Main goroutine exiting.")
 }

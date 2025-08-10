@@ -178,19 +178,28 @@ func (conn *FutuApiConn) handleResponsePacket() {
 			buffer := make([]byte, HEADER_SIZE)
 			_, err := io.ReadFull(conn.Conn, buffer)
 			if err != nil {
-				panic(err)
+				log.Println(err)
+				continue
 			}
 
 			h := ParseHeader(buffer[:])
 			payload := make([]byte, h.BodyLen)
 			_, err = io.ReadFull(conn.Conn, payload)
 			if err != nil {
-				panic(err)
+				log.Println(err)
+				continue
 			}
 
 			// check response success or not
-			retType := bytesToInt32(payload[:4])
-			log.Println("responded", retType)
+
+			var m keepalive.Response
+			err = proto.UnmarshalOptions{DiscardUnknown: true,
+				AllowPartial: true,
+			}.Unmarshal(payload, &m)
+			retType := *m.RetType
+			if retType != 0 {
+				log.Println("server responded failure packet", h.ProtoID, m.String())
+			}
 
 			switch h.ProtoID {
 			case INIT_CONNECT:
@@ -202,7 +211,7 @@ func (conn *FutuApiConn) handleResponsePacket() {
 				}
 				if *resp.RetType == 0 {
 					conn.connId = *resp.S2C.ConnID
-					log.Println("inited connection", conn.connId)
+					log.Println("inited connection with ID", conn.connId)
 					interval := int(*resp.S2C.KeepAliveInterval)
 					go conn.keepalive(interval)
 				} else {
@@ -210,7 +219,12 @@ func (conn *FutuApiConn) handleResponsePacket() {
 				}
 			case KEEP_ALIVE:
 				// if fail, log and try again
-				log.Println("responded keep alive packet")
+				var resp keepalive.Response
+				err = proto.Unmarshal(payload, &resp)
+				if err != nil {
+					panic(err)
+				}
+				log.Println("server responded keep alive packet with server time", time.Unix(*resp.S2C.Time, 0))
 			default:
 				if IsPushProto(h.ProtoID) && conn.pushHook != nil {
 					conn.pushHook(h.ProtoID, &ProtoResponse{
