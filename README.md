@@ -6,6 +6,8 @@
 
 ## 在树莓派(arm64)上运行OpenD
 
+> 也可以安装Windows/MacOS/Linux（amd64)等版本，开发时推荐使用GUI版本方便调试
+
 使用[box64](https://github.com/ptitSeb/box64)
 
 先运行`box64 ./FTUpdate`保证软件是最新的, 然后运行`box64 ./FutuOpenD`
