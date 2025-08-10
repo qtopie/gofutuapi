@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/qtopie/gofutuapi"
+	"github.com/qtopie/gofutuapi/gen/common/getuserinfo"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -25,8 +27,24 @@ func main() {
 	}
 	defer conn.Close() // Ensure the connection is closed when done
 
-	// resp := conn.NextReplyPacket()
-	// log.Println(resp)
+	flag := int32(getuserinfo.UserInfoField_UserInfoField_Basic)
+	req := getuserinfo.Request{
+		C2S: &getuserinfo.C2S{
+			Flag: &flag,
+		},
+	}
+	conn.SendProto(1005, &req)
+	reply, err := conn.NextReplyPacket()
+	if err != nil {
+		log.Println(err)
+	} else {
+		var resp getuserinfo.Response
+		err = proto.Unmarshal(reply.Payload, &resp)
+		if err != nil {
+			panic(err)
+		}
+		log.Println(resp.String())
+	}
 
 	<-ctx.Done()
 	fmt.Println("Main goroutine exiting.")

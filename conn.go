@@ -2,6 +2,7 @@ package gofutuapi
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log"
 	"net"
@@ -47,7 +48,8 @@ type FutuApiConn struct {
 
 func Open(context context.Context, option FutuApiOption) (*FutuApiConn, error) {
 	c := &FutuApiConn{
-		Context: context,
+		Context:    context,
+		replyQueue: make(chan *ProtoResponse, 32),
 	}
 
 	conn, err := net.DialTimeout("tcp", option.Address, 5*time.Second)
@@ -126,7 +128,15 @@ func (conn *FutuApiConn) SendProto(protoId int, req proto.Message) int {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("written data to server with protoId", protoId)
+
+	switch protoId {
+	case INIT_CONNECT:
+		log.Println("sent init connection packet to server")
+	case KEEP_ALIVE:
+		log.Println("sent heartbeat packet to server")
+	default:
+		log.Println("sent data to server with protoId", protoId)
+	}
 
 	// TODO thread-safe
 	conn.nextPacketSN++
@@ -138,8 +148,15 @@ func (conn *FutuApiConn) Close() error {
 	return conn.Conn.Close()
 }
 
-func (conn *FutuApiConn) NextReplyPacket() *ProtoResponse {
-	return <-conn.replyQueue
+func (conn *FutuApiConn) NextReplyPacket() (*ProtoResponse, error) {
+	for afterCh := time.After(5 * time.Second); ; {
+		select {
+		case d := <-conn.replyQueue:
+			return d, nil
+		case <-afterCh:
+			return nil, errors.New("timeout to read response")
+		}
+	}
 }
 
 func (conn *FutuApiConn) handleResponsePacket() {
@@ -149,8 +166,10 @@ func (conn *FutuApiConn) handleResponsePacket() {
 	for {
 		select {
 		case <-conn.Done():
+			log.Println("conn is closed")
 			return
 		case <-ticker.C:
+			log.Println("reading packet")
 			buffer := make([]byte, HEADER_SIZE)
 			_, err := io.ReadFull(conn.Conn, buffer)
 			if err != nil {
@@ -165,9 +184,11 @@ func (conn *FutuApiConn) handleResponsePacket() {
 			}
 
 			// check response success or not
-			log.Println(payload)
+			retType := bytesToInt32(payload[:4])
+			log.Println("responded", retType)
 
-			if h.ProtoID == INIT_CONNECT {
+			switch h.ProtoID {
+			case INIT_CONNECT:
 				// if fail, log and exit
 				var resp initconnect.Response
 				err = proto.Unmarshal(payload, &resp)
@@ -176,31 +197,28 @@ func (conn *FutuApiConn) handleResponsePacket() {
 				}
 				if *resp.RetType == 0 {
 					conn.connId = *resp.S2C.ConnID
+					log.Println("inited connection", conn.connId)
 					interval := int(*resp.S2C.KeepAliveInterval)
 					go conn.keepalive(interval)
 				} else {
 					log.Fatalln(resp.String())
 				}
-
-				return
-			}
-
-			if h.ProtoID == KEEP_ALIVE {
+			case KEEP_ALIVE:
 				// if fail, log and try again
-
-				return
-			}
-
-			if IsPushProto(int(h.ProtoID)) {
-				// TODO: push listener
-				// conn.pushQueue <- &ProtoResponse{
-				// 	Header:  *h,
-				// 	Payload: payload,
-				// }
-			} else {
-				conn.replyQueue <- &ProtoResponse{
-					Header:  *h,
-					Payload: payload,
+				log.Println("responded keep alive packet")
+			default:
+				if IsPushProto(int(h.ProtoID)) {
+					// TODO: push listener
+					// conn.pushQueue <- &ProtoResponse{
+					// 	Header:  *h,
+					// 	Payload: payload,
+					// }
+				} else {
+					conn.replyQueue <- &ProtoResponse{
+						Header:  *h,
+						Payload: payload,
+						RetType: int(retType),
+					}
 				}
 			}
 		}
