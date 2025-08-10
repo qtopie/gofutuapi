@@ -27,6 +27,10 @@ func main() {
 	}
 	defer conn.Close() // Ensure the connection is closed when done
 
+	conn.RegisterHook(func(protoId gofutuapi.ProtoId, response *gofutuapi.ProtoResponse) {
+		log.Println(response.Header)
+	})
+
 	flag := int32(getuserinfo.UserInfoField_UserInfoField_Basic)
 	req := getuserinfo.Request{
 		C2S: &getuserinfo.C2S{
@@ -45,6 +49,8 @@ func main() {
 		}
 		log.Println(resp.String())
 	}
+
+	subReq := 
 
 	<-ctx.Done()
 	fmt.Println("Main goroutine exiting.")

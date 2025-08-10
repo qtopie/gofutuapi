@@ -35,8 +35,10 @@ type FutuApiConn struct {
 	// network connections
 	net.Conn
 
+	// server push packet on receive hook
+	pushHook func(protoId ProtoId, response *ProtoResponse)
+	// server reply packet queue
 	replyQueue chan *ProtoResponse
-	pushQueue  chan *ProtoResponse
 
 	connId       uint64
 	nextPacketSN int32
@@ -109,9 +111,9 @@ func (conn *FutuApiConn) keepalive(interval int) {
 }
 
 // SendProto sends protobuf data to futu OpenD server
-func (conn *FutuApiConn) SendProto(protoId int, req proto.Message) int {
+func (conn *FutuApiConn) SendProto(protoId ProtoId, req proto.Message) int {
 	header := NewHeader()
-	header.ProtoID = int32(protoId)
+	header.ProtoID = protoId
 	header.ProtoFmtType = 0
 	header.ProtoVer = 0
 	header.SerialNo = conn.nextPacketSN
@@ -143,6 +145,10 @@ func (conn *FutuApiConn) SendProto(protoId int, req proto.Message) int {
 	return int(conn.nextPacketSN - 1)
 }
 
+func (conn *FutuApiConn) RegisterHook(f func(protoId ProtoId, response *ProtoResponse)) {
+	conn.pushHook = f
+}
+
 func (conn *FutuApiConn) Close() error {
 	log.Println("closing connection", conn.connId)
 	return conn.Conn.Close()
@@ -169,7 +175,6 @@ func (conn *FutuApiConn) handleResponsePacket() {
 			log.Println("conn is closed")
 			return
 		case <-ticker.C:
-			log.Println("reading packet")
 			buffer := make([]byte, HEADER_SIZE)
 			_, err := io.ReadFull(conn.Conn, buffer)
 			if err != nil {
@@ -207,12 +212,12 @@ func (conn *FutuApiConn) handleResponsePacket() {
 				// if fail, log and try again
 				log.Println("responded keep alive packet")
 			default:
-				if IsPushProto(int(h.ProtoID)) {
-					// TODO: push listener
-					// conn.pushQueue <- &ProtoResponse{
-					// 	Header:  *h,
-					// 	Payload: payload,
-					// }
+				if IsPushProto(h.ProtoID) && conn.pushHook != nil {
+					conn.pushHook(h.ProtoID, &ProtoResponse{
+						Header:  *h,
+						Payload: payload,
+						RetType: int(retType),
+					})
 				} else {
 					conn.replyQueue <- &ProtoResponse{
 						Header:  *h,
