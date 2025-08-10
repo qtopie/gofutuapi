@@ -1,10 +1,10 @@
 syntax = "proto2";
 package Qot_GetPriceReminder;
 option java_package = "com.futu.openapi.pb";
-option go_package = "github.com/futuopen/ftapi4go/pb/qotgetpricereminder";
+option go_package = "github.com/qtopie/gofutuapi/gen/qot/qotgetpricereminder";
 
-import "Common.proto";
-import "Qot_Common.proto";
+import "common/Common.proto";
+import "qot/Qot_Common.proto";
 
 // 提醒信息列表
 message PriceReminderItem

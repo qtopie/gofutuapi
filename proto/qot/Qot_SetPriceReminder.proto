@@ -1,10 +1,10 @@
 syntax = "proto2";
 package Qot_SetPriceReminder;
 option java_package = "com.futu.openapi.pb";
-option go_package = "github.com/futuopen/ftapi4go/pb/qotsetpricereminder";
+option go_package = "github.com/qtopie/gofutuapi/gen/qot/qotsetpricereminder";
 
-import "Common.proto";
-import "Qot_Common.proto";
+import "common/Common.proto";
+import "qot/Qot_Common.proto";
 
 enum SetPriceReminderOp
 {

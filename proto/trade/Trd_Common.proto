@@ -3,7 +3,7 @@ package Trd_Common;
 option java_package = "com.futu.openapi.pb";
 option go_package = "./trd/common";
 
-import "Common.proto";
+import "common/Common.proto";
 
 //交易环境
 enum TrdEnv

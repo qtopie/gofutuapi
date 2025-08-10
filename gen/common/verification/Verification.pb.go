@@ -4,7 +4,7 @@
 // 	protoc        (unknown)
 // source: common/verification/Verification.proto
 
-package verificocation
+package verification
 
 import (
 	_ "github.com/qtopie/gofutuapi/gen/common"
@@ -381,8 +381,8 @@ const file_common_verification_Verification_proto_rawDesc = "" +
 	"\x0eVerificationOp\x12\x19\n" +
 	"\x15VerificationOp_Unknow\x10\x00\x12\x1a\n" +
 	"\x16VerificationOp_Request\x10\x01\x12 \n" +
-	"\x1cVerificationOp_InputAndLogin\x10\x02B'\n" +
-	"\x13com.futu.openapi.pbZ\x10./verificocation"
+	"\x1cVerificationOp_InputAndLogin\x10\x02BJ\n" +
+	"\x13com.futu.openapi.pbZ3github.com/qtopie/gofutuapi/gen/common/verification"
 
 var (
 	file_common_verification_Verification_proto_rawDescOnce sync.Once

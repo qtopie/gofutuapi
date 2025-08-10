@@ -1,10 +1,10 @@
 syntax = "proto2";
 package Trd_GetAccList;
 option java_package = "com.futu.openapi.pb";
-option go_package = "github.com/futuopen/ftapi4go/pb/trdgetacclist";
+option go_package = "github.com/qtopie/gofutuapi/gen/trade/trdgetacclist";
 
-import "Common.proto";
-import "Trd_Common.proto";
+import "common/Common.proto";
+import "trade/Trd_Common.proto";
 
 message C2S
 {

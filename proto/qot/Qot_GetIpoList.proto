@@ -1,10 +1,10 @@
 syntax = "proto2";
 package Qot_GetIpoList;
 option java_package = "com.futu.openapi.pb";
-option go_package = "github.com/futuopen/ftapi4go/pb/qotgetipolist";
+option go_package = "github.com/qtopie/gofutuapi/gen/qot/qotgetipolist";
 
-import "Common.proto";
-import "Qot_Common.proto";
+import "common/Common.proto";
+import "qot/Qot_Common.proto";
 
 // Ipo基本数据
 message BasicIpoData

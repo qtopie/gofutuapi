@@ -1,10 +1,10 @@
 syntax = "proto2";
 package Qot_GetSubInfo;
 option java_package = "com.futu.openapi.pb";
-option go_package = "github.com/futuopen/ftapi4go/pb/qotgetsubinfo";
+option go_package = "github.com/qtopie/gofutuapi/gen/qot/qotgetsubinfo";
 
-import "Common.proto";
-import "Qot_Common.proto";
+import "common/Common.proto";
+import "qot/Qot_Common.proto";
 
 message C2S
 {

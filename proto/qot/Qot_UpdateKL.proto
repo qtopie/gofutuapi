@@ -1,10 +1,10 @@
 syntax = "proto2";
 package Qot_UpdateKL;
 option java_package = "com.futu.openapi.pb";
-option go_package = "github.com/futuopen/ftapi4go/pb/qotupdatekl";
+option go_package = "github.com/qtopie/gofutuapi/gen/qot/qotupdatekl";
 
-import "Common.proto";
-import "Qot_Common.proto";
+import "common/Common.proto";
+import "qot/Qot_Common.proto";
 
 message S2C
 {

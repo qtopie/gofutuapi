@@ -1,10 +1,10 @@
 syntax = "proto2";
 package Qot_GetUserSecurityGroup;
 option java_package = "com.futu.openapi.pb";
-option go_package = "github.com/futuopen/ftapi4go/pb/qotgetusersecuritygroup";
+option go_package = "github.com/qtopie/gofutuapi/gen/qot/qotgetusersecuritygroup";
 
-import "Common.proto";
-import "Qot_Common.proto";
+import "common/Common.proto";
+import "qot/Qot_Common.proto";
 
 // 自选股分组类型
 enum GroupType

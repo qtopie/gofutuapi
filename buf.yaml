@@ -2,9 +2,9 @@
 version: v2
 modules:
   - path: proto
-    excludes:
-      - proto/qot
-      - proto/trade
+    # excludes:
+      # - proto/qot
+      # - proto/trade
 lint:
   use:
     - STANDARD

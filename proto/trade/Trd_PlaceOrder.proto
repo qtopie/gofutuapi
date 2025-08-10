@@ -1,10 +1,10 @@
 syntax = "proto2";
 package Trd_PlaceOrder;
 option java_package = "com.futu.openapi.pb";
-option go_package = "github.com/futuopen/ftapi4go/pb/trdplaceorder";
+option go_package = "github.com/qtopie/gofutuapi/gen/trade/trdplaceorder";
 
-import "Common.proto";
-import "Trd_Common.proto";
+import "common/Common.proto";
+import "trade/Trd_Common.proto";
 
 message C2S
 {

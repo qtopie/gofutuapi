@@ -1,9 +1,9 @@
 syntax = "proto2";
 package Trd_FlowSummary;
 option java_package = "com.futu.openapi.pb";
-option go_package = "github.com/futuopen/ftapi4go/pb/trdflowsummary";
+option go_package = "github.com/qtopie/gofutuapi/gen/trade/trdflowsummary";
 
-import "Trd_Common.proto";
+import "trade/Trd_Common.proto";
 
 enum TrdCashFlowDirection
 {
