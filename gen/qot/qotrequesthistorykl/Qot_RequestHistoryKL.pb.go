@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.7
 // 	protoc        (unknown)
-// source: qot/Qot_RequestHistoryKL.proto
+// source: qot/qotrequesthistorykl/Qot_RequestHistoryKL.proto
 
 package qotrequesthistorykl
 
@@ -41,7 +41,7 @@ type C2S struct {
 
 func (x *C2S) Reset() {
 	*x = C2S{}
-	mi := &file_qot_Qot_RequestHistoryKL_proto_msgTypes[0]
+	mi := &file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -53,7 +53,7 @@ func (x *C2S) String() string {
 func (*C2S) ProtoMessage() {}
 
 func (x *C2S) ProtoReflect() protoreflect.Message {
-	mi := &file_qot_Qot_RequestHistoryKL_proto_msgTypes[0]
+	mi := &file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -66,7 +66,7 @@ func (x *C2S) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use C2S.ProtoReflect.Descriptor instead.
 func (*C2S) Descriptor() ([]byte, []int) {
-	return file_qot_Qot_RequestHistoryKL_proto_rawDescGZIP(), []int{0}
+	return file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *C2S) GetRehabType() int32 {
@@ -151,7 +151,7 @@ type S2C struct {
 
 func (x *S2C) Reset() {
 	*x = S2C{}
-	mi := &file_qot_Qot_RequestHistoryKL_proto_msgTypes[1]
+	mi := &file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -163,7 +163,7 @@ func (x *S2C) String() string {
 func (*S2C) ProtoMessage() {}
 
 func (x *S2C) ProtoReflect() protoreflect.Message {
-	mi := &file_qot_Qot_RequestHistoryKL_proto_msgTypes[1]
+	mi := &file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -176,7 +176,7 @@ func (x *S2C) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use S2C.ProtoReflect.Descriptor instead.
 func (*S2C) Descriptor() ([]byte, []int) {
-	return file_qot_Qot_RequestHistoryKL_proto_rawDescGZIP(), []int{1}
+	return file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *S2C) GetSecurity() *common.Security {
@@ -216,7 +216,7 @@ type Request struct {
 
 func (x *Request) Reset() {
 	*x = Request{}
-	mi := &file_qot_Qot_RequestHistoryKL_proto_msgTypes[2]
+	mi := &file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -228,7 +228,7 @@ func (x *Request) String() string {
 func (*Request) ProtoMessage() {}
 
 func (x *Request) ProtoReflect() protoreflect.Message {
-	mi := &file_qot_Qot_RequestHistoryKL_proto_msgTypes[2]
+	mi := &file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -241,7 +241,7 @@ func (x *Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Request.ProtoReflect.Descriptor instead.
 func (*Request) Descriptor() ([]byte, []int) {
-	return file_qot_Qot_RequestHistoryKL_proto_rawDescGZIP(), []int{2}
+	return file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Request) GetC2S() *C2S {
@@ -268,7 +268,7 @@ const (
 
 func (x *Response) Reset() {
 	*x = Response{}
-	mi := &file_qot_Qot_RequestHistoryKL_proto_msgTypes[3]
+	mi := &file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -280,7 +280,7 @@ func (x *Response) String() string {
 func (*Response) ProtoMessage() {}
 
 func (x *Response) ProtoReflect() protoreflect.Message {
-	mi := &file_qot_Qot_RequestHistoryKL_proto_msgTypes[3]
+	mi := &file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -293,7 +293,7 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Response.ProtoReflect.Descriptor instead.
 func (*Response) Descriptor() ([]byte, []int) {
-	return file_qot_Qot_RequestHistoryKL_proto_rawDescGZIP(), []int{3}
+	return file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Response) GetRetType() int32 {
@@ -324,11 +324,11 @@ func (x *Response) GetS2C() *S2C {
 	return nil
 }
 
-var File_qot_Qot_RequestHistoryKL_proto protoreflect.FileDescriptor
+var File_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto protoreflect.FileDescriptor
 
-const file_qot_Qot_RequestHistoryKL_proto_rawDesc = "" +
+const file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDesc = "" +
 	"\n" +
-	"\x1eqot/Qot_RequestHistoryKL.proto\x12\x14Qot_RequestHistoryKL\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\xd1\x02\n" +
+	"2qot/qotrequesthistorykl/Qot_RequestHistoryKL.proto\x12\x14Qot_RequestHistoryKL\x1a\x13common/Common.proto\x1a\x1bqot/common/Qot_Common.proto\"\xd1\x02\n" +
 	"\x03C2S\x12\x1c\n" +
 	"\trehabType\x18\x01 \x02(\x05R\trehabType\x12\x16\n" +
 	"\x06klType\x18\x02 \x02(\x05R\x06klType\x120\n" +
@@ -360,19 +360,19 @@ const file_qot_Qot_RequestHistoryKL_proto_rawDesc = "" +
 	"\x13com.futu.openapi.pbZ7github.com/qtopie/gofutuapi/gen/qot/qotrequesthistorykl"
 
 var (
-	file_qot_Qot_RequestHistoryKL_proto_rawDescOnce sync.Once
-	file_qot_Qot_RequestHistoryKL_proto_rawDescData []byte
+	file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescOnce sync.Once
+	file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescData []byte
 )
 
-func file_qot_Qot_RequestHistoryKL_proto_rawDescGZIP() []byte {
-	file_qot_Qot_RequestHistoryKL_proto_rawDescOnce.Do(func() {
-		file_qot_Qot_RequestHistoryKL_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_qot_Qot_RequestHistoryKL_proto_rawDesc), len(file_qot_Qot_RequestHistoryKL_proto_rawDesc)))
+func file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescGZIP() []byte {
+	file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescOnce.Do(func() {
+		file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDesc), len(file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDesc)))
 	})
-	return file_qot_Qot_RequestHistoryKL_proto_rawDescData
+	return file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDescData
 }
 
-var file_qot_Qot_RequestHistoryKL_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_qot_Qot_RequestHistoryKL_proto_goTypes = []any{
+var file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_goTypes = []any{
 	(*C2S)(nil),             // 0: Qot_RequestHistoryKL.C2S
 	(*S2C)(nil),             // 1: Qot_RequestHistoryKL.S2C
 	(*Request)(nil),         // 2: Qot_RequestHistoryKL.Request
@@ -380,7 +380,7 @@ var file_qot_Qot_RequestHistoryKL_proto_goTypes = []any{
 	(*common.Security)(nil), // 4: Qot_Common.Security
 	(*common.KLine)(nil),    // 5: Qot_Common.KLine
 }
-var file_qot_Qot_RequestHistoryKL_proto_depIdxs = []int32{
+var file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_depIdxs = []int32{
 	4, // 0: Qot_RequestHistoryKL.C2S.security:type_name -> Qot_Common.Security
 	4, // 1: Qot_RequestHistoryKL.S2C.security:type_name -> Qot_Common.Security
 	5, // 2: Qot_RequestHistoryKL.S2C.klList:type_name -> Qot_Common.KLine
@@ -393,26 +393,26 @@ var file_qot_Qot_RequestHistoryKL_proto_depIdxs = []int32{
 	0, // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_qot_Qot_RequestHistoryKL_proto_init() }
-func file_qot_Qot_RequestHistoryKL_proto_init() {
-	if File_qot_Qot_RequestHistoryKL_proto != nil {
+func init() { file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_init() }
+func file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_init() {
+	if File_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_qot_Qot_RequestHistoryKL_proto_rawDesc), len(file_qot_Qot_RequestHistoryKL_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDesc), len(file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_qot_Qot_RequestHistoryKL_proto_goTypes,
-		DependencyIndexes: file_qot_Qot_RequestHistoryKL_proto_depIdxs,
-		MessageInfos:      file_qot_Qot_RequestHistoryKL_proto_msgTypes,
+		GoTypes:           file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_goTypes,
+		DependencyIndexes: file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_depIdxs,
+		MessageInfos:      file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_msgTypes,
 	}.Build()
-	File_qot_Qot_RequestHistoryKL_proto = out.File
-	file_qot_Qot_RequestHistoryKL_proto_goTypes = nil
-	file_qot_Qot_RequestHistoryKL_proto_depIdxs = nil
+	File_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto = out.File
+	file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_goTypes = nil
+	file_qot_qotrequesthistorykl_Qot_RequestHistoryKL_proto_depIdxs = nil
 }
