@@ -1,0 +1,28 @@
+// This file is adapted from the official Futu OpenAPI protocol definitions.
+// Original copyright belongs to Futu Holdings Limited.
+// Modified by [qtopie] to ensure Golang compatibility (e.g., go_package, field naming).
+
+syntax = "proto2";
+package Qot_UpdateBroker;
+option java_package = "com.futu.openapi.pb";
+option go_package = "github.com/qtopie/gofutuapi/gen/qot/qotupdatebroker";
+
+import "common/Common.proto";
+import "qot/common/Qot_Common.proto";
+
+message S2C
+{
+	required Qot_Common.Security security = 1; //股票
+	optional string name = 4; // 股票名称
+	repeated Qot_Common.Broker brokerAskList = 2; //经纪Ask(卖)盘
+	repeated Qot_Common.Broker brokerBidList = 3; //经纪Bid(买)盘
+}
+
+message Response
+{
+	required int32 retType = 1 [default = -400]; //RetType,返回结果
+	optional string retMsg = 2;
+	optional int32 errCode = 3;
+	
+	optional S2C s2c = 4;
+}

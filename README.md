@@ -75,3 +75,13 @@ func main() {
 	fmt.Println("Main goroutine exiting.")
 }
 ```
+
+## ⚖️ 法律声明 (Legal Disclaimer)
+
+本项目是基于富途证券 (Futu Securities) [公开协议文档](https://openapi.futunn.com/futu-api-doc/en/intro/intro.html)开发的第三方 Go 语言集成库。
+
+- **合规性**：本项目遵循富途官方关于“自行对接协议”的指引。
+- **协议修改说明**：为适配 Go 语言特性，本项目对原始 `.proto` 定义进行了必要的命名规范调整和技术适配。
+- **免责声明**：本项目不提供任何金融投资建议，不对因代码 Bug 或交易导致的亏损负责。使用前请详细阅读 [LEGAL_NOTICE.md](./LEGAL_NOTICE.md)。
+
+![alt text](docs/image.png)
