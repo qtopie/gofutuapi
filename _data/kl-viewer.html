@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Futu K线可视化</title>
+  <script src="./plotly-2.32.0.min.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 16px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap: 8px; }
+    .title { font-weight: 600; }
+    .summary { display: flex; gap: 12px; font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+    .summary span { white-space: nowrap; }
+    .btn { background: #111827; color: #fff; border: none; border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .muted { color: #6b7280; font-size: 12px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h2>Futu K线可视化</h2>
+  <div class="muted" id="meta">等待数据...</div>
+  <div class="summary" id="trade-funds"></div>
+  <div class="summary" id="trade-orders"></div>
+  <div class="summary" id="trade-positions"></div>
+  <div class="grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="title" id="title-0"></div>
+        <button class="btn" data-chart="0">导出PNG</button>
+      </div>
+      <div class="summary" id="summary-0"></div>
+      <div id="chart-0"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="title" id="title-1"></div>
+        <button class="btn" data-chart="1">导出PNG</button>
+      </div>
+      <div class="summary" id="summary-1"></div>
+      <div id="chart-1"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="title" id="title-2"></div>
+        <button class="btn" data-chart="2">导出PNG</button>
+      </div>
+      <div class="summary" id="summary-2"></div>
+      <div id="chart-2"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="title" id="title-3"></div>
+        <button class="btn" data-chart="3">导出PNG</button>
+      </div>
+      <div class="summary" id="summary-3"></div>
+      <div id="chart-3"></div>
+    </div>
+  </div>
+
+  <script>
+    async function loadData() {
+      try {
+        const resp = await fetch(`kl-data.json?ts=${Date.now()}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        render(data);
+      } catch (err) {
+        document.getElementById("meta").textContent = `读取失败: ${err.message}`;
+      }
+    }
+
+    function marketCurrency(market) {
+      switch (market) {
+        case "HK":
+          return "HKD";
+        case "US":
+          return "USD";
+        case "SH":
+        case "SZ":
+          return "CNY";
+        default:
+          return "";
+      }
+    }
+
+    function render(data) {
+      const currency = marketCurrency(data.market || "");
+      const currencyLabel = currency ? ` | 货币: ${currency}` : "";
+      const meta = `标的: ${data.symbol} | 生成时间: ${data.generatedAt}${currencyLabel}`;
+      document.getElementById("meta").textContent = meta;
+
+      const trade = data.tradeSummary || {};
+      const funds = trade.funds || {};
+      const fundsCurrency = funds.currency ? ` (${funds.currency})` : "";
+      const fundsText = funds.total
+        ? `账户余额: ${funds.balance.toFixed(2)}${fundsCurrency} | 交易中: ${funds.trading.toFixed(2)}${fundsCurrency} | 占比: ${(funds.tradingRatio * 100).toFixed(2)}%`
+        : `账户余额: N/A${fundsCurrency} | 交易中: N/A${fundsCurrency} | 占比: N/A`;
+      document.getElementById("trade-funds").textContent = fundsText;
+
+      const pendingOrders = trade.pendingOrders || [];
+      const ordersText = pendingOrders.length
+        ? `待成交订单(${pendingOrders.length}): ` + pendingOrders.map(o => `${o.code} ${o.name} x${o.qty}`).join(" | ")
+        : "待成交订单: N/A";
+      document.getElementById("trade-orders").textContent = ordersText;
+
+      const positions = trade.positions || [];
+      const positionsText = positions.length
+        ? `持仓(${positions.length}): ` + positions.map(p => `${p.code} ${p.name} x${p.qty}`).join(" | ")
+        : "持仓: N/A";
+      document.getElementById("trade-positions").textContent = positionsText;
+
+      data.series.forEach((series, index) => {
+        const elementId = `chart-${index}`;
+        const titleId = `title-${index}`;
+        document.getElementById(titleId).textContent = series.label;
+
+        const x = series.points.map(p => p.time);
+        const open = series.points.map(p => p.open);
+        const high = series.points.map(p => p.high);
+        const low = series.points.map(p => p.low);
+        const close = series.points.map(p => p.close);
+        const mid = series.points.map(p => (p.high + p.low) / 2);
+
+        let maxHigh = null;
+        let minLow = null;
+        series.points.forEach(point => {
+          if (maxHigh === null || point.high > maxHigh) maxHigh = point.high;
+          if (minLow === null || point.low < minLow) minLow = point.low;
+        });
+
+        const summary = document.getElementById(`summary-${index}`);
+        if (summary) {
+          const highText = maxHigh === null ? "-" : maxHigh.toFixed(2);
+          const lowText = minLow === null ? "-" : minLow.toFixed(2);
+          const unitText = currency ? ` (${currency})` : "";
+          summary.innerHTML = `<span>最高: ${highText}${unitText}</span><span>最低: ${lowText}${unitText}</span>`;
+        }
+
+        const candleTrace = {
+          x,
+          open,
+          high,
+          low,
+          close,
+          type: "candlestick",
+          name: series.label,
+          increasing: { line: { color: "#16a34a" } },
+          decreasing: { line: { color: "#dc2626" } }
+        };
+
+        const midTrace = {
+          x,
+          y: mid,
+          type: "scatter",
+          mode: "lines",
+          name: "中心线",
+          line: { color: "#2563eb", width: 1.5 }
+        };
+
+        const layout = {
+          margin: { l: 40, r: 20, t: 20, b: 40 },
+          xaxis: { rangeslider: { visible: false } },
+          yaxis: { autorange: true, fixedrange: false }
+        };
+
+        Plotly.newPlot(elementId, [candleTrace, midTrace], layout, { displayModeBar: false, responsive: true });
+
+        const exportButton = document.querySelector(`button[data-chart="${index}"]`);
+        if (exportButton) {
+          exportButton.onclick = () => {
+            Plotly.downloadImage(elementId, {
+              format: "png",
+              filename: `kl-${series.klType.toLowerCase()}-${index}`,
+              height: 600,
+              width: 1000
+            });
+          };
+        }
+      });
+    }
+
+    loadData();
+    setInterval(loadData, 5000);
+  </script>
+</body>
+</html>

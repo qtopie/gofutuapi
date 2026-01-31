@@ -76,6 +76,18 @@ func main() {
 }
 ```
 
+## K线可视化（Plotly）
+
+运行示例会生成 `docs/kl-data.json`，并启动内置 Go HTTP 服务展示最近 7 天、30 天、180 天（月K）、3 年（季K）的K线。
+
+```bash
+go run ./cmd
+```
+
+然后访问：`http://localhost:8000/kl-viewer.html`
+
+![kl](docs/kl-day-1.png)
+
 ## ⚖️ 法律声明 (Legal Disclaimer)
 
 本项目是基于富途证券 (Futu Securities) [公开协议文档](https://openapi.futunn.com/futu-api-doc/en/intro/intro.html)开发的第三方 Go 语言集成库。
