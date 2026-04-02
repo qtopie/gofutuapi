@@ -12,6 +12,20 @@
 
 先运行`box64 ./FTUpdate`保证软件是最新的, 然后运行`box64 ./FutuOpenD`
 
+## 本地下载和解压 OpenD
+
+仓库里提供了 `Makefile` 目标来下载并解压 Ubuntu 版 OpenD，本地文件会放在 `.opend/` 下，并且默认不会进入 git。
+
+```bash
+make opend-setup
+```
+
+常用目标：
+
+- `make opend-download`：只下载压缩包到 `.opend/downloads/`
+- `make opend-setup`：下载并解压到 `.opend/app/`
+- `make opend-clean`：删除本地 OpenD 文件
+
 
 ## 代码示例
 
@@ -74,6 +88,49 @@ func main() {
 	<-ctx.Done()
 	fmt.Println("Main goroutine exiting.")
 }
+```
+
+也可以直接使用客户端封装查询待成交订单：
+
+```go
+client := gofutuapi.NewClient(conn)
+orders, err := client.GetPendingOrders()
+if err != nil {
+	log.Fatal(err)
+}
+
+for _, order := range orders {
+	log.Printf("%s %s qty=%.2f price=%.2f status=%d",
+		order.GetCode(),
+		order.GetName(),
+		order.GetQty(),
+		order.GetPrice(),
+		order.GetOrderStatus(),
+	)
+}
+```
+
+解锁交易也已经封装好了。为了避免把密码写进代码，可以用环境变量运行：
+
+```bash
+FUTU_TRADE_PASSWORD='your-trade-password' go run ./cmd/unlocktrade
+```
+
+代码中对应的方法是：
+
+```go
+client := gofutuapi.NewClient(conn)
+err := client.UnlockTrade("your-trade-password", trdcommon.SecurityFirm_SecurityFirm_FutuSecurities)
+```
+
+如果你想直接打印真实账户的当前资金、持仓和当日订单，可以运行：
+
+```bash
+go run ./cmd/checkus -market US
+go run ./cmd/checkus -market HK
+go run ./cmd/checkus -market US -debug-accounts
+go run ./cmd/checkus -all-accounts
+go run ./cmd/checkus -acc-id 281756456013616044
 ```
 
 ## K线可视化（Plotly）

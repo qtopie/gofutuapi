@@ -77,11 +77,17 @@ type FundsSummary struct {
 	TradingRatio float64 `json:"tradingRatio"`
 }
 
-type TradeSummary struct {
+type AccountSummary struct {
+	AccID         uint64         `json:"accId"`
+	TrdEnv        string         `json:"trdEnv"`
 	PendingOrders []PendingOrder `json:"pendingOrders"`
 	Positions     []PositionItem `json:"positions"`
 	Funds         FundsSummary   `json:"funds"`
-	Errors        []string       `json:"errors"`
+}
+
+type TradeSummary struct {
+	Accounts []AccountSummary `json:"accounts"`
+	Errors   []string         `json:"errors"`
 }
 
 func marketLabel(market int32) string {
@@ -191,15 +197,14 @@ func orderStatusLabel(status int32) string {
 	return fmt.Sprintf("%d", status)
 }
 
-func pendingOrderStatusList() []int32 {
-	return []int32{
-		int32(trdcommon.OrderStatus_OrderStatus_WaitingSubmit),
-		int32(trdcommon.OrderStatus_OrderStatus_Submitting),
-		int32(trdcommon.OrderStatus_OrderStatus_Submitted),
-		int32(trdcommon.OrderStatus_OrderStatus_Filled_Part),
-		int32(trdcommon.OrderStatus_OrderStatus_Cancelling_Part),
-		int32(trdcommon.OrderStatus_OrderStatus_Cancelling_All),
-		int32(trdcommon.OrderStatus_OrderStatus_TimeOut),
+func trdEnvLabel(env int32) string {
+	switch env {
+	case int32(trdcommon.TrdEnv_TrdEnv_Real):
+		return "REAL"
+	case int32(trdcommon.TrdEnv_TrdEnv_Simulate):
+		return "SIMULATE"
+	default:
+		return fmt.Sprintf("%d", env)
 	}
 }
 
@@ -236,116 +241,125 @@ func fetchTradeSummary(conn *gofutuapi.FutuApiConn) *TradeSummary {
 		summary.Errors = append(summary.Errors, "no trading account found")
 		return summary
 	}
-	acc := accList[0]
-	trdEnv := acc.GetTrdEnv()
-	accID := acc.GetAccID()
-	trdMarket := int32(trdcommon.TrdMarket_TrdMarket_Unknown)
-	if len(acc.GetTrdMarketAuthList()) > 0 {
-		trdMarket = acc.GetTrdMarketAuthList()[0]
-	}
-	header := &trdcommon.TrdHeader{
-		TrdEnv:    &trdEnv,
-		AccID:     &accID,
-		TrdMarket: &trdMarket,
-	}
 
-	refreshCache := true
-	orderReq := trdgetorderlist.Request{
-		C2S: &trdgetorderlist.C2S{
-			Header:           header,
-			FilterStatusList: pendingOrderStatusList(),
-			RefreshCache:     &refreshCache,
-		},
-	}
-	conn.SendProto(gofutuapi.TRD_GETORDERLIST, &orderReq)
-	reply, err = conn.NextReplyPacket()
-	if err != nil {
-		summary.Errors = append(summary.Errors, fmt.Sprintf("get order list failed: %v", err))
-	} else {
-		var orderResp trdgetorderlist.Response
-		if err := proto.Unmarshal(reply.Payload, &orderResp); err != nil {
-			summary.Errors = append(summary.Errors, fmt.Sprintf("get order list unmarshal failed: %v", err))
-		} else if orderResp.GetRetType() != 0 {
-			summary.Errors = append(summary.Errors, fmt.Sprintf("get order list failed: %s", orderResp.GetRetMsg()))
-		} else {
-			for _, order := range orderResp.GetS2C().GetOrderList() {
-				summary.PendingOrders = append(summary.PendingOrders, PendingOrder{
-					Code:       order.GetCode(),
-					Name:       order.GetName(),
-					Qty:        order.GetQty(),
-					Price:      order.GetPrice(),
-					Status:     orderStatusLabel(order.GetOrderStatus()),
-					StatusCode: order.GetOrderStatus(),
-				})
-			}
+	for _, acc := range accList {
+		accSum := AccountSummary{
+			AccID:  acc.GetAccID(),
+			TrdEnv: trdEnvLabel(acc.GetTrdEnv()),
 		}
-	}
 
-	posReq := trdgetpositionlist.Request{
-		C2S: &trdgetpositionlist.C2S{
-			Header:       header,
-			RefreshCache: &refreshCache,
-		},
-	}
-	conn.SendProto(gofutuapi.TRD_GETPOSITIONLIST, &posReq)
-	reply, err = conn.NextReplyPacket()
-	if err != nil {
-		summary.Errors = append(summary.Errors, fmt.Sprintf("get position list failed: %v", err))
-	} else {
-		var posResp trdgetpositionlist.Response
-		if err := proto.Unmarshal(reply.Payload, &posResp); err != nil {
-			summary.Errors = append(summary.Errors, fmt.Sprintf("get position list unmarshal failed: %v", err))
-		} else if posResp.GetRetType() != 0 {
-			summary.Errors = append(summary.Errors, fmt.Sprintf("get position list failed: %s", posResp.GetRetMsg()))
-		} else {
-			for _, position := range posResp.GetS2C().GetPositionList() {
-				summary.Positions = append(summary.Positions, PositionItem{
-					Code:  position.GetCode(),
-					Name:  position.GetName(),
-					Qty:   position.GetQty(),
-					Price: position.GetPrice(),
-					Cost:  position.GetAverageCostPrice(),
-					Val:   position.GetVal(),
-				})
-			}
+		trdEnv := acc.GetTrdEnv()
+		accID := acc.GetAccID()
+		trdMarket := int32(trdcommon.TrdMarket_TrdMarket_Unknown)
+		if len(acc.GetTrdMarketAuthList()) > 0 {
+			trdMarket = acc.GetTrdMarketAuthList()[0]
 		}
-	}
+		header := &trdcommon.TrdHeader{
+			TrdEnv:    &trdEnv,
+			AccID:     &accID,
+			TrdMarket: &trdMarket,
+		}
 
-	fundsReq := trdgetfunds.Request{
-		C2S: &trdgetfunds.C2S{
-			Header:       header,
-			RefreshCache: &refreshCache,
-		},
-	}
-	conn.SendProto(gofutuapi.TRD_GETFUNDS, &fundsReq)
-	reply, err = conn.NextReplyPacket()
-	if err != nil {
-		summary.Errors = append(summary.Errors, fmt.Sprintf("get funds failed: %v", err))
-	} else {
-		var fundsResp trdgetfunds.Response
-		if err := proto.Unmarshal(reply.Payload, &fundsResp); err != nil {
-			summary.Errors = append(summary.Errors, fmt.Sprintf("get funds unmarshal failed: %v", err))
-		} else if fundsResp.GetRetType() != 0 {
-			summary.Errors = append(summary.Errors, fmt.Sprintf("get funds failed: %s", fundsResp.GetRetMsg()))
+		refreshCache := true
+		orderReq := trdgetorderlist.Request{
+			C2S: &trdgetorderlist.C2S{
+				Header:           header,
+				FilterStatusList: gofutuapi.PendingOrderStatuses(),
+				RefreshCache:     &refreshCache,
+			},
+		}
+		conn.SendProto(gofutuapi.TRD_GETORDERLIST, &orderReq)
+		reply, err = conn.NextReplyPacket()
+		if err != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get order list failed: %v", accID, err))
 		} else {
-			funds := fundsResp.GetS2C().GetFunds()
-			if funds != nil {
-				balance := funds.GetCash()
-				trading := funds.GetFrozenCash()
-				total := balance + trading
-				ratio := 0.0
-				if total > 0 {
-					ratio = trading / total
-				}
-				summary.Funds = FundsSummary{
-					Currency:     tradeCurrencyLabel(funds.GetCurrency()),
-					Balance:      balance,
-					Trading:      trading,
-					Total:        total,
-					TradingRatio: ratio,
+			var orderResp trdgetorderlist.Response
+			if err := proto.Unmarshal(reply.Payload, &orderResp); err != nil {
+				summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get order list unmarshal failed: %v", accID, err))
+			} else if orderResp.GetRetType() != 0 {
+				summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get order list failed: %s", accID, orderResp.GetRetMsg()))
+			} else {
+				for _, order := range orderResp.GetS2C().GetOrderList() {
+					accSum.PendingOrders = append(accSum.PendingOrders, PendingOrder{
+						Code:       order.GetCode(),
+						Name:       order.GetName(),
+						Qty:        order.GetQty(),
+						Price:      order.GetPrice(),
+						Status:     orderStatusLabel(order.GetOrderStatus()),
+						StatusCode: order.GetOrderStatus(),
+					})
 				}
 			}
 		}
+
+		posReq := trdgetpositionlist.Request{
+			C2S: &trdgetpositionlist.C2S{
+				Header:       header,
+				RefreshCache: &refreshCache,
+			},
+		}
+		conn.SendProto(gofutuapi.TRD_GETPOSITIONLIST, &posReq)
+		reply, err = conn.NextReplyPacket()
+		if err != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get position list failed: %v", accID, err))
+		} else {
+			var posResp trdgetpositionlist.Response
+			if err := proto.Unmarshal(reply.Payload, &posResp); err != nil {
+				summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get position list unmarshal failed: %v", accID, err))
+			} else if posResp.GetRetType() != 0 {
+				summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get position list failed: %s", accID, posResp.GetRetMsg()))
+			} else {
+				for _, position := range posResp.GetS2C().GetPositionList() {
+					accSum.Positions = append(accSum.Positions, PositionItem{
+						Code:  position.GetCode(),
+						Name:  position.GetName(),
+						Qty:   position.GetQty(),
+						Price: position.GetPrice(),
+						Cost:  position.GetAverageCostPrice(),
+						Val:   position.GetVal(),
+					})
+				}
+			}
+		}
+
+		fundsReq := trdgetfunds.Request{
+			C2S: &trdgetfunds.C2S{
+				Header:       header,
+				RefreshCache: &refreshCache,
+			},
+		}
+		conn.SendProto(gofutuapi.TRD_GETFUNDS, &fundsReq)
+		reply, err = conn.NextReplyPacket()
+		if err != nil {
+			summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get funds failed: %v", accID, err))
+		} else {
+			var fundsResp trdgetfunds.Response
+			if err := proto.Unmarshal(reply.Payload, &fundsResp); err != nil {
+				summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get funds unmarshal failed: %v", accID, err))
+			} else if fundsResp.GetRetType() != 0 {
+				summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get funds failed: %s", accID, fundsResp.GetRetMsg()))
+			} else {
+				funds := fundsResp.GetS2C().GetFunds()
+				if funds != nil {
+					balance := funds.GetCash()
+					trading := funds.GetFrozenCash()
+					total := balance + trading
+					ratio := 0.0
+					if total > 0 {
+						ratio = trading / total
+					}
+					accSum.Funds = FundsSummary{
+						Currency:     tradeCurrencyLabel(funds.GetCurrency()),
+						Balance:      balance,
+						Trading:      trading,
+						Total:        total,
+						TradingRatio: ratio,
+					}
+				}
+			}
+		}
+
+		summary.Accounts = append(summary.Accounts, accSum)
 	}
 
 	return summary
