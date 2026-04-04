@@ -3,10 +3,12 @@ package gofutuapi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/qtopie/gofutuapi/gen/common/initconnect"
@@ -32,6 +34,8 @@ type FutuApiConn struct {
 	// parent context
 	context.Context
 
+	option FutuApiOption
+
 	// network connections
 	net.Conn
 
@@ -43,28 +47,25 @@ type FutuApiConn struct {
 	connId       uint64
 	nextPacketSN int32
 
-	mu    sync.Mutex
-	rw    io.ReadWriteCloser
-	state int
+	mu           sync.Mutex
+	rw           io.ReadWriteCloser
+	isReconnecting uint32
 }
 
 func Open(context context.Context, option FutuApiOption) (*FutuApiConn, error) {
+	// We use context.Context but naming it appropriately for the SDK
+	return openWithRetry(context, option)
+}
+
+// openWithRetry is the internal constructor
+func openWithRetry(ctx context.Context, option FutuApiOption) (*FutuApiConn, error) {
 	c := &FutuApiConn{
-		Context:    context,
-		replyQueue: make(chan *ProtoResponse, 32),
+		Context:    ctx,
+		option:     option,
+		replyQueue: make(chan *ProtoResponse, 128),
 	}
 
-	conn, err := net.DialTimeout("tcp", option.Address, 5*time.Second)
-	if err != nil {
-		return nil, err
-	}
-
-	c.Conn = conn
-	c.rw = c.Conn
-	c.nextPacketSN = 1
-
-	err = c.initConnect()
-	if err != nil {
+	if err := c.connect(); err != nil {
 		return nil, err
 	}
 
@@ -72,6 +73,19 @@ func Open(context context.Context, option FutuApiOption) (*FutuApiConn, error) {
 	go c.handleResponsePacket()
 
 	return c, nil
+}
+
+func (conn *FutuApiConn) connect() error {
+	nc, err := net.DialTimeout("tcp", conn.option.Address, 5*time.Second)
+	if err != nil {
+		return err
+	}
+
+	conn.Conn = nc
+	conn.rw = conn.Conn
+	atomic.StoreInt32(&conn.nextPacketSN, 1)
+
+	return conn.initConnect()
 }
 
 func (conn *FutuApiConn) initConnect() error {
@@ -85,38 +99,81 @@ func (conn *FutuApiConn) initConnect() error {
 	msg.ProgrammingLanguage = &programmingLanguage
 	req.C2S = msg
 
-	conn.SendProto(INIT_CONNECT, req)
-	return nil
+	// Send without lock because connect() is called during init or under lock
+	packetSN := atomic.AddInt32(&conn.nextPacketSN, 1) - 1
+	header := NewHeader()
+	header.ProtoID = INIT_CONNECT
+	header.SerialNo = packetSN
+	payload, _ := proto.Marshal(req)
+	header.UpdateBodyInfo(payload)
+	data := append(header.ToBytes(), payload...)
+	_, err := conn.rw.Write(data)
+	return err
+}
+
+func (conn *FutuApiConn) tryReconnect() {
+	if !atomic.CompareAndSwapUint32(&conn.isReconnecting, 0, 1) {
+		return
+	}
+	defer atomic.StoreUint32(&conn.isReconnecting, 0)
+
+	log.Println("connection lost, attempting to reconnect...")
+	
+	for {
+		select {
+		case <-conn.Done():
+			return
+		default:
+			if conn.Conn != nil {
+				conn.Conn.Close()
+			}
+			err := conn.connect()
+			if err == nil {
+				log.Println("reconnected successfully")
+				return
+			}
+			log.Printf("reconnect failed: %v, retrying in 5 seconds...", err)
+			time.Sleep(5 * time.Second)
+		}
+	}
 }
 
 func (conn *FutuApiConn) keepalive(interval int) {
-	// update ticker time with server response
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
 		case <-conn.Done():
 			return
 		case <-ticker.C:
+			if atomic.LoadUint32(&conn.isReconnecting) == 1 {
+				continue
+			}
 			unixEpochSeconds := time.Now().Unix()
-			keepaliveMsg := &keepalive.C2S{}
-			keepaliveMsg.Time = &unixEpochSeconds
-			keepaliveReq := &keepalive.Request{}
-			keepaliveReq.C2S = keepaliveMsg
-
+			keepaliveMsg := &keepalive.C2S{Time: &unixEpochSeconds}
+			keepaliveReq := &keepalive.Request{C2S: keepaliveMsg}
 			conn.SendProto(KEEP_ALIVE, keepaliveReq)
 		}
 	}
-
 }
 
-// SendProto sends protobuf data to futu OpenD server
 func (conn *FutuApiConn) SendProto(protoId ProtoId, req proto.Message) int {
+	conn.mu.Lock()
+	defer conn.mu.Unlock()
+
+	// If reconnecting, wait a bit
+	for i := 0; i < 10 && atomic.LoadUint32(&conn.isReconnecting) == 1; i++ {
+		conn.mu.Unlock()
+		time.Sleep(500 * time.Millisecond)
+		conn.mu.Lock()
+	}
+
+	packetSN := atomic.AddInt32(&conn.nextPacketSN, 1) - 1
+
 	header := NewHeader()
 	header.ProtoID = protoId
-	header.ProtoFmtType = 0
-	header.ProtoVer = 0
-	header.SerialNo = conn.nextPacketSN
+	header.SerialNo = packetSN
 
 	payload, err := proto.Marshal(req)
 	if err != nil {
@@ -124,25 +181,14 @@ func (conn *FutuApiConn) SendProto(protoId ProtoId, req proto.Message) int {
 	}
 
 	header.UpdateBodyInfo(payload)
-
 	data := append(header.ToBytes(), payload...)
 	_, err = conn.rw.Write(data)
 	if err != nil {
-		panic(err)
+		log.Printf("write error for proto %d: %v", protoId, err)
+		go conn.tryReconnect()
 	}
 
-	switch protoId {
-	case INIT_CONNECT:
-		log.Println("sent init connection packet to server")
-	case KEEP_ALIVE:
-		log.Println("sent heartbeat packet to server")
-	default:
-		log.Println("sent data to server with protoId", protoId)
-	}
-
-	// TODO thread-safe
-	conn.nextPacketSN++
-	return int(conn.nextPacketSN - 1)
+	return int(packetSN)
 }
 
 func (conn *FutuApiConn) RegisterHook(f func(protoId ProtoId, response *ProtoResponse)) {
@@ -150,97 +196,97 @@ func (conn *FutuApiConn) RegisterHook(f func(protoId ProtoId, response *ProtoRes
 }
 
 func (conn *FutuApiConn) Close() error {
-	log.Println("closing connection", conn.connId)
-	return conn.Conn.Close()
+	if conn.Conn != nil {
+		log.Println("closing connection", conn.connId)
+		return conn.Conn.Close()
+	}
+	return nil
 }
 
 func (conn *FutuApiConn) NextReplyPacket() (*ProtoResponse, error) {
-	for afterCh := time.After(5 * time.Second); ; {
+	afterCh := time.After(10 * time.Second)
+	for {
 		select {
 		case d := <-conn.replyQueue:
 			return d, nil
 		case <-afterCh:
 			return nil, errors.New("timeout to read response")
+		case <-conn.Done():
+			return nil, errors.New("connection closed")
 		}
 	}
 }
 
 func (conn *FutuApiConn) handleResponsePacket() {
-	// update ticker time with server response
-	ticker := time.NewTicker(time.Duration(100) * time.Millisecond)
-
 	for {
 		select {
 		case <-conn.Done():
-			log.Println("conn is closed")
 			return
-		case <-ticker.C:
+		default:
+			if atomic.LoadUint32(&conn.isReconnecting) == 1 {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+
 			buffer := make([]byte, HEADER_SIZE)
 			_, err := io.ReadFull(conn.Conn, buffer)
 			if err != nil {
-				log.Println(err)
-				continue
+				select {
+				case <-conn.Done():
+					return
+				default:
+					log.Printf("read header error: %v", err)
+					conn.tryReconnect()
+					continue
+				}
 			}
 
 			h := ParseHeader(buffer[:])
 			payload := make([]byte, h.BodyLen)
 			_, err = io.ReadFull(conn.Conn, payload)
 			if err != nil {
-				log.Println(err)
+				log.Printf("read payload error: %v", err)
+				conn.tryReconnect()
 				continue
 			}
 
-			// check response success or not
-
 			var m keepalive.Response
-			err = proto.UnmarshalOptions{DiscardUnknown: true,
-				AllowPartial: true,
-			}.Unmarshal(payload, &m)
-			retType := *m.RetType
-			if retType != 0 {
-				log.Println("server responded failure packet", h.ProtoID, m.String())
+			_ = proto.UnmarshalOptions{DiscardUnknown: true, AllowPartial: true}.Unmarshal(payload, &m)
+			retType := int32(-400)
+			if m.RetType != nil {
+				retType = *m.RetType
 			}
 
 			switch h.ProtoID {
 			case INIT_CONNECT:
-				// if fail, log and exit
 				var resp initconnect.Response
-				err = proto.Unmarshal(payload, &resp)
-				if err != nil {
-					panic(err)
-				}
-				if *resp.RetType == 0 {
+				if err := proto.Unmarshal(payload, &resp); err == nil && *resp.RetType == 0 {
 					conn.connId = *resp.S2C.ConnID
 					log.Println("inited connection with ID", conn.connId)
 					interval := int(*resp.S2C.KeepAliveInterval)
 					go conn.keepalive(interval)
-				} else {
-					log.Fatalln(resp.String())
 				}
 			case KEEP_ALIVE:
-				// if fail, log and try again
 				var resp keepalive.Response
-				err = proto.Unmarshal(payload, &resp)
-				if err != nil {
-					panic(err)
+				if err := proto.Unmarshal(payload, &resp); err == nil {
+					// Heartbeat ack
 				}
-				log.Println("server responded keep alive packet with server time", time.Unix(*resp.S2C.Time, 0))
 			default:
+				pr := &ProtoResponse{
+					Header:  *h,
+					Payload: payload,
+					RetType: int(retType),
+				}
 				if IsPushProto(h.ProtoID) && conn.pushHook != nil {
-					conn.pushHook(h.ProtoID, &ProtoResponse{
-						Header:  *h,
-						Payload: payload,
-						RetType: int(retType),
-					})
+					conn.pushHook(h.ProtoID, pr)
 				} else {
-					conn.replyQueue <- &ProtoResponse{
-						Header:  *h,
-						Payload: payload,
-						RetType: int(retType),
+					select {
+					case conn.replyQueue <- pr:
+					default:
+						// Queue full, drop or handle
 					}
 				}
 			}
 		}
-
 	}
 }
