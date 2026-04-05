@@ -13,10 +13,6 @@ import (
 
 	"github.com/qtopie/gofutuapi"
 	qotcommon "github.com/qtopie/gofutuapi/gen/qot/common"
-	"github.com/qtopie/gofutuapi/gen/qot/getoptionexpirationdate"
-	"github.com/qtopie/gofutuapi/gen/qot/qotgetoptionchain"
-	"github.com/qtopie/gofutuapi/gen/qot/qotrequesthistorykl"
-	"github.com/qtopie/gofutuapi/gen/qot/qotrequestrehab"
 	"github.com/qtopie/gofutuapi/gen/qot/qotsetpricereminder"
 	"github.com/qtopie/gofutuapi/gen/qot/qotstockfilter"
 	"github.com/qtopie/gofutuapi/gen/trade/trdupdateorder"
@@ -51,9 +47,9 @@ func main() {
 	filterMax := flag.Float64("filter-max", 0, "max value for filter")
 	beginTime := flag.String("begin", "", "begin time for history kl or option chain")
 	endTime := flag.String("end", "", "end time for history kl or option chain")
-	klType := flag.Int("kl-type", 1, "KLType: 1 K_DAY, 2 K_1M...")
-	rehabType := flag.Int("rehab-type", 1, "RehabType: 1 Forward, 2 Backward, 0 None")
-	optType := flag.Int("opt-type", 0, "OptionType: 0 Unknown, 1 Call, 2 Put")
+	klTypeStr := flag.String("kl-type", "DAY", "KLType: DAY, WEEK, MONTH, 1M, 5M, 15M, 30M, 60M")
+	rehabTypeStr := flag.String("rehab-type", "FORWARD", "RehabType: NONE, FORWARD, BACKWARD")
+	optTypeStr := flag.String("opt-type", "CALL", "OptionType: CALL, PUT, ALL")
 	flag.Parse()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -107,13 +103,68 @@ func main() {
 	case "fills":
 		handleFills(client, trdEnv, trdMarket, *accID)
 	case "history-kl":
-		handleHistoryKL(client, *code, *beginTime, *endTime, *klType, *rehabType)
+		handleHistoryKL(client, *code, *beginTime, *endTime, *klTypeStr, *rehabTypeStr)
 	case "option-expiration":
 		handleOptionExpiration(client, *code)
 	case "option-chain":
-		handleOptionChain(client, *code, *beginTime, *endTime, *optType)
+		handleOptionChain(client, *code, *beginTime, *endTime, *optTypeStr)
 	default:
 		sendError(fmt.Errorf("unknown command: %s", *cmd))
+	}
+}
+
+func parseKLType(s string) qotcommon.KLType {
+	switch strings.ToUpper(s) {
+	case "1M":
+		return qotcommon.KLType_KLType_1Min
+	case "DAY":
+		return qotcommon.KLType_KLType_Day
+	case "WEEK":
+		return qotcommon.KLType_KLType_Week
+	case "MONTH":
+		return qotcommon.KLType_KLType_Month
+	case "YEAR":
+		return qotcommon.KLType_KLType_Year
+	case "5M":
+		return qotcommon.KLType_KLType_5Min
+	case "15M":
+		return qotcommon.KLType_KLType_15Min
+	case "30M":
+		return qotcommon.KLType_KLType_30Min
+	case "60M":
+		return qotcommon.KLType_KLType_60Min
+	case "3M":
+		return qotcommon.KLType_KLType_3Min
+	case "QUARTER":
+		return qotcommon.KLType_KLType_Quarter
+	default:
+		return qotcommon.KLType_KLType_Day
+	}
+}
+
+func parseRehabType(s string) qotcommon.RehabType {
+	switch strings.ToUpper(s) {
+	case "NONE":
+		return qotcommon.RehabType_RehabType_None
+	case "FORWARD":
+		return qotcommon.RehabType_RehabType_Forward
+	case "BACKWARD":
+		return qotcommon.RehabType_RehabType_Backward
+	default:
+		return qotcommon.RehabType_RehabType_Forward
+	}
+}
+
+func parseOptionType(s string) qotcommon.OptionType {
+	switch strings.ToUpper(s) {
+	case "CALL":
+		return qotcommon.OptionType_OptionType_Call
+	case "PUT":
+		return qotcommon.OptionType_OptionType_Put
+	case "ALL":
+		return qotcommon.OptionType_OptionType_Unknown
+	default:
+		return qotcommon.OptionType_OptionType_Unknown
 	}
 }
 
@@ -460,7 +511,7 @@ func handleFilter(client *gofutuapi.FutuClient, marketStr string, field int, min
 	sendSuccess(result)
 }
 
-func handleHistoryKL(client *gofutuapi.FutuClient, code string, begin, end string, klType, rehabType int) {
+func handleHistoryKL(client *gofutuapi.FutuClient, code string, begin, end string, klTypeStr, rehabTypeStr string) {
 	if code == "" {
 		sendError(fmt.Errorf("code is required"))
 		return
@@ -493,8 +544,8 @@ func handleHistoryKL(client *gofutuapi.FutuClient, code string, begin, end strin
 
 	klList, err := client.RequestHistoryKL(
 		security,
-		qotcommon.KLType(klType),
-		qotcommon.RehabType(rehabType),
+		parseKLType(klTypeStr),
+		parseRehabType(rehabTypeStr),
 		begin,
 		end,
 		0,
@@ -543,7 +594,7 @@ func handleOptionExpiration(client *gofutuapi.FutuClient, code string) {
 	sendSuccess(dates)
 }
 
-func handleOptionChain(client *gofutuapi.FutuClient, code string, begin, end string, optType int) {
+func handleOptionChain(client *gofutuapi.FutuClient, code string, begin, end string, optTypeStr string) {
 	if code == "" {
 		sendError(fmt.Errorf("code is required"))
 		return
@@ -570,7 +621,7 @@ func handleOptionChain(client *gofutuapi.FutuClient, code string, begin, end str
 		Code:   &symbol,
 	}
 
-	chain, err := client.GetOptionChain(security, begin, end, qotcommon.OptionType(optType))
+	chain, err := client.GetOptionChain(security, begin, end, parseOptionType(optTypeStr))
 	if err != nil {
 		sendError(err)
 		return
