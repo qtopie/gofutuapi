@@ -357,7 +357,31 @@ func handlePlaceOrder(client *gofutuapi.FutuClient, env trdcommon.TrdEnv, market
 		return
 	}
 
-	orderIDEx, orderID, err := client.PlaceOrder(acc, side, oType, code, qty, price)
+	// 自动从代码推断 SecMarket 和 TrdMarket
+	secMarket := qotcommon.QotMarket_QotMarket_HK_Security
+	targetTrdMarket := trdcommon.TrdMarket_TrdMarket_HK
+	pureCode := code
+	if strings.Contains(code, ".") {
+		m, c, _ := strings.Cut(code, ".")
+		pureCode = c
+		switch strings.ToUpper(m) {
+		case "US":
+			// 尝试将 SecMarket 设为 2 (TrdMarket_US)，有些版本协议要求此对齐
+			secMarket = qotcommon.QotMarket(2) 
+			targetTrdMarket = trdcommon.TrdMarket_TrdMarket_US
+		case "SH":
+			secMarket = qotcommon.QotMarket_QotMarket_CNSH_Security
+			targetTrdMarket = trdcommon.TrdMarket_TrdMarket_CN
+		case "SZ":
+			secMarket = qotcommon.QotMarket_QotMarket_CNSZ_Security
+			targetTrdMarket = trdcommon.TrdMarket_TrdMarket_CN
+		}
+	} else if market == trdcommon.TrdMarket_TrdMarket_US {
+		secMarket = qotcommon.QotMarket_QotMarket_US_Security
+		targetTrdMarket = trdcommon.TrdMarket_TrdMarket_US
+	}
+
+	orderIDEx, orderID, err := client.PlaceOrder(acc, side, oType, pureCode, qty, price, secMarket, targetTrdMarket)
 	if err != nil {
 		sendError(err)
 		return

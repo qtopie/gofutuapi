@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/qtopie/gofutuapi/gen/common"
+	qotcommon "github.com/qtopie/gofutuapi/gen/qot/common"
 	trdcommon "github.com/qtopie/gofutuapi/gen/trade/common"
 	"github.com/qtopie/gofutuapi/gen/trade/trdgetacclist"
 	"github.com/qtopie/gofutuapi/gen/trade/trdgetfunds"
@@ -139,10 +140,7 @@ func (c *FutuClient) GetFundsForAccount(acc *trdcommon.TrdAcc, refreshCache bool
 		return nil, fmt.Errorf("futu client connection is nil")
 	}
 
-	header, err := c.tradeHeaderForAccount(acc)
-	if err != nil {
-		return nil, err
-	}
+	header := c.tradeHeaderForAccount(acc, trdcommon.TrdMarket_TrdMarket_Unknown)
 	currency := int32(trdcommon.Currency_Currency_USD)
 
 	req := trdgetfunds.Request{
@@ -178,10 +176,7 @@ func (c *FutuClient) GetPositionsForAccount(acc *trdcommon.TrdAcc, refreshCache 
 		return nil, fmt.Errorf("futu client connection is nil")
 	}
 
-	header, err := c.tradeHeaderForAccount(acc)
-	if err != nil {
-		return nil, err
-	}
+	header := c.tradeHeaderForAccount(acc, trdcommon.TrdMarket_TrdMarket_Unknown)
 
 	req := trdgetpositionlist.Request{
 		C2S: &trdgetpositionlist.C2S{
@@ -234,10 +229,7 @@ func (c *FutuClient) GetOrderListForAccount(acc *trdcommon.TrdAcc, filterStatusL
 		return nil, fmt.Errorf("futu client connection is nil")
 	}
 
-	header, err := c.tradeHeaderForAccount(acc)
-	if err != nil {
-		return nil, err
-	}
+	header := c.tradeHeaderForAccount(acc, trdcommon.TrdMarket_TrdMarket_Unknown)
 
 	req := trdgetorderlist.Request{
 		C2S: &trdgetorderlist.C2S{
@@ -280,10 +272,7 @@ func (c *FutuClient) GetOrderFillListForAccount(acc *trdcommon.TrdAcc, refreshCa
 		return nil, fmt.Errorf("futu client connection is nil")
 	}
 
-	header, err := c.tradeHeaderForAccount(acc)
-	if err != nil {
-		return nil, err
-	}
+	header := c.tradeHeaderForAccount(acc, trdcommon.TrdMarket_TrdMarket_Unknown)
 
 	req := trdgetorderfilllist.Request{
 		C2S: &trdgetorderfilllist.C2S{
@@ -317,10 +306,7 @@ func (c *FutuClient) ModifyOrder(acc *trdcommon.TrdAcc, orderID string, price fl
 		return fmt.Errorf("futu client connection is nil")
 	}
 
-	header, err := c.tradeHeaderForAccount(acc)
-	if err != nil {
-		return err
-	}
+	header := c.tradeHeaderForAccount(acc, trdcommon.TrdMarket_TrdMarket_Unknown)
 
 	req := trdmodifyorder.Request{
 		C2S: &trdmodifyorder.C2S{
@@ -334,7 +320,7 @@ func (c *FutuClient) ModifyOrder(acc *trdcommon.TrdAcc, orderID string, price fl
 	}
 
 	var id uint64
-	_, err = fmt.Sscanf(orderID, "%d", &id)
+	_, err := fmt.Sscanf(orderID, "%d", &id)
 	if err == nil {
 		req.C2S.OrderID = &id
 	} else {
@@ -359,18 +345,16 @@ func (c *FutuClient) ModifyOrder(acc *trdcommon.TrdAcc, orderID string, price fl
 	return nil
 }
 
-func (c *FutuClient) PlaceOrder(acc *trdcommon.TrdAcc, trdSide trdcommon.TrdSide, orderType trdcommon.OrderType, code string, qty float64, price float64) (string, uint64, error) {
+func (c *FutuClient) PlaceOrder(acc *trdcommon.TrdAcc, trdSide trdcommon.TrdSide, orderType trdcommon.OrderType, code string, qty float64, price float64, secMarket qotcommon.QotMarket, trdMarket trdcommon.TrdMarket) (string, uint64, error) {
 	if c == nil || c.Conn == nil {
 		return "", 0, fmt.Errorf("futu client connection is nil")
 	}
 
-	header, err := c.tradeHeaderForAccount(acc)
-	if err != nil {
-		return "", 0, err
-	}
+	header := c.tradeHeaderForAccount(acc, trdMarket)
 
 	side := int32(trdSide)
 	oType := int32(orderType)
+	sm := int32(secMarket)
 	req := trdplaceorder.Request{
 		C2S: &trdplaceorder.C2S{
 			PacketID:  c.GeneratePacketID(),
@@ -380,6 +364,7 @@ func (c *FutuClient) PlaceOrder(acc *trdcommon.TrdAcc, trdSide trdcommon.TrdSide
 			Code:      &code,
 			Qty:       &qty,
 			Price:     &price,
+			SecMarket: &sm,
 		},
 	}
 
@@ -408,26 +393,20 @@ func (c *FutuClient) PlaceOrder(acc *trdcommon.TrdAcc, trdSide trdcommon.TrdSide
 
 // --- Helpers ---
 
-func (c *FutuClient) tradeHeaderForAccount(acc *trdcommon.TrdAcc) (*trdcommon.TrdHeader, error) {
-	if acc == nil {
-		return nil, fmt.Errorf("trading account is nil")
-	}
-
-	return tradeHeaderFromAccount(acc), nil
-}
-
-func tradeHeaderFromAccount(acc *trdcommon.TrdAcc) *trdcommon.TrdHeader {
+func (c *FutuClient) tradeHeaderForAccount(acc *trdcommon.TrdAcc, trdMarket trdcommon.TrdMarket) *trdcommon.TrdHeader {
 	trdEnv := acc.GetTrdEnv()
 	accID := acc.GetAccID()
-	trdMarket := int32(trdcommon.TrdMarket_TrdMarket_Unknown)
-	if len(acc.GetTrdMarketAuthList()) > 0 {
-		trdMarket = acc.GetTrdMarketAuthList()[0]
+	
+	// 如果传入了明确的市场，则使用该市场；否则尝试获取账户第一个授权市场
+	tm := int32(trdMarket)
+	if trdMarket == trdcommon.TrdMarket_TrdMarket_Unknown && len(acc.TrdMarketAuthList) > 0 {
+		tm = acc.TrdMarketAuthList[0]
 	}
 
 	return &trdcommon.TrdHeader{
 		TrdEnv:    &trdEnv,
 		AccID:     &accID,
-		TrdMarket: &trdMarket,
+		TrdMarket: &tm,
 	}
 }
 
@@ -436,7 +415,7 @@ func findTradeAccount(accounts []*trdcommon.TrdAcc, trdEnv int32, trdMarket int3
 		if acc.GetTrdEnv() != trdEnv {
 			continue
 		}
-		for _, market := range acc.GetTrdMarketAuthList() {
+		for _, market := range acc.TrdMarketAuthList {
 			if market == trdMarket {
 				return acc
 			}

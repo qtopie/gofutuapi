@@ -3,6 +3,7 @@ package gofutuapi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -46,14 +47,18 @@ type FutuApiConn struct {
 	connId       uint64
 	nextPacketSN int32
 
-	mu           sync.Mutex
-	rw           io.ReadWriteCloser
+	mu             sync.Mutex
+	rw             io.ReadWriteCloser
 	isReconnecting uint32
 }
 
-func Open(context context.Context, option FutuApiOption) (*FutuApiConn, error) {
-	// We use context.Context but naming it appropriately for the SDK
-	return openWithRetry(context, option)
+func Open(ctx context.Context, option FutuApiOption) (*FutuApiConn, error) {
+	// Using the context from the parameter
+	return openWithRetry(ctx, option)
+}
+
+func OpenContext(ctx context.Context, option FutuApiOption) (*FutuApiConn, error) {
+	return openWithRetry(ctx, option)
 }
 
 // openWithRetry is the internal constructor
@@ -84,21 +89,22 @@ func (conn *FutuApiConn) connect() error {
 	conn.rw = conn.Conn
 	atomic.StoreInt32(&conn.nextPacketSN, 1)
 
-	return conn.initConnect()
+	// In connect, we handle initConnect manually to get connId before starting handleResponsePacket
+	return conn.initConnectSync()
 }
 
-func (conn *FutuApiConn) initConnect() error {
-	req := &initconnect.Request{}
-	msg := &initconnect.C2S{}
-	msg.ClientVer = &clientVer
-	msg.ClientID = &clientID
-	msg.RecvNotify = &recvNotify
-	msg.PacketEncAlgo = &packetEncAlgo
-	msg.PushProtoFmt = &pushProtoFmt
-	msg.ProgrammingLanguage = &programmingLanguage
-	req.C2S = msg
+func (conn *FutuApiConn) initConnectSync() error {
+	req := &initconnect.Request{
+		C2S: &initconnect.C2S{
+			ClientVer:           &clientVer,
+			ClientID:            &clientID,
+			RecvNotify:          &recvNotify,
+			PacketEncAlgo:       &packetEncAlgo,
+			PushProtoFmt:        &pushProtoFmt,
+			ProgrammingLanguage: &programmingLanguage,
+		},
+	}
 
-	// Send without lock because connect() is called during init or under lock
 	packetSN := atomic.AddInt32(&conn.nextPacketSN, 1) - 1
 	header := NewHeader()
 	header.ProtoID = INIT_CONNECT
@@ -106,8 +112,35 @@ func (conn *FutuApiConn) initConnect() error {
 	payload, _ := proto.Marshal(req)
 	header.UpdateBodyInfo(payload)
 	data := append(header.ToBytes(), payload...)
-	_, err := conn.rw.Write(data)
-	return err
+
+	if _, err := conn.rw.Write(data); err != nil {
+		return err
+	}
+
+	// Read reply immediately
+	respBuf := make([]byte, HEADER_SIZE)
+	if _, err := io.ReadFull(conn.rw, respBuf); err != nil {
+		return err
+	}
+	respHeader := ParseHeader(respBuf)
+	respPayload := make([]byte, respHeader.BodyLen)
+	if _, err := io.ReadFull(conn.rw, respPayload); err != nil {
+		return err
+	}
+
+	var resp initconnect.Response
+	if err := proto.Unmarshal(respPayload, &resp); err != nil {
+		return err
+	}
+
+	if resp.GetRetType() != 0 {
+		return fmt.Errorf("init connect failed: %s", resp.GetRetMsg())
+	}
+
+	conn.connId = resp.GetS2C().GetConnID()
+	log.Printf("inited connection with ID %d", conn.connId)
+
+	return nil
 }
 
 func (conn *FutuApiConn) tryReconnect() {
@@ -117,7 +150,7 @@ func (conn *FutuApiConn) tryReconnect() {
 	defer atomic.StoreUint32(&conn.isReconnecting, 0)
 
 	log.Println("connection lost, attempting to reconnect...")
-	
+
 	for {
 		select {
 		case <-conn.Done():
@@ -228,7 +261,7 @@ func (conn *FutuApiConn) handleResponsePacket() {
 			}
 
 			buffer := make([]byte, HEADER_SIZE)
-			_, err := io.ReadFull(conn.Conn, buffer)
+			_, err := io.ReadFull(conn.rw, buffer)
 			if err != nil {
 				select {
 				case <-conn.Done():
@@ -242,48 +275,28 @@ func (conn *FutuApiConn) handleResponsePacket() {
 
 			h := ParseHeader(buffer[:])
 			payload := make([]byte, h.BodyLen)
-			_, err = io.ReadFull(conn.Conn, payload)
+			_, err = io.ReadFull(conn.rw, payload)
 			if err != nil {
 				log.Printf("read payload error: %v", err)
 				conn.tryReconnect()
 				continue
 			}
 
-			var m keepalive.Response
-			_ = proto.UnmarshalOptions{DiscardUnknown: true, AllowPartial: true}.Unmarshal(payload, &m)
-			retType := int32(-400)
-			if m.RetType != nil {
-				retType = *m.RetType
+			resp := &ProtoResponse{
+				Header:  *h,
+				Payload: payload,
 			}
 
-			switch h.ProtoID {
-			case INIT_CONNECT:
-				var resp initconnect.Response
-				if err := proto.Unmarshal(payload, &resp); err == nil && *resp.RetType == 0 {
-					conn.connId = *resp.S2C.ConnID
-					log.Println("inited connection with ID", conn.connId)
-					interval := int(*resp.S2C.KeepAliveInterval)
-					go conn.keepalive(interval)
+			// check if push or reply
+			if h.SerialNo == 0 {
+				if conn.pushHook != nil {
+					conn.pushHook(h.ProtoID, resp)
 				}
-			case KEEP_ALIVE:
-				var resp keepalive.Response
-				if err := proto.Unmarshal(payload, &resp); err == nil {
-					// Heartbeat ack
-				}
-			default:
-				pr := &ProtoResponse{
-					Header:  *h,
-					Payload: payload,
-					RetType: int(retType),
-				}
-				if IsPushProto(h.ProtoID) && conn.pushHook != nil {
-					conn.pushHook(h.ProtoID, pr)
-				} else {
-					select {
-					case conn.replyQueue <- pr:
-					default:
-						// Queue full, drop or handle
-					}
+			} else {
+				select {
+				case conn.replyQueue <- resp:
+				default:
+					log.Println("replyQueue is full, dropping packet")
 				}
 			}
 		}
