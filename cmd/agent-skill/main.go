@@ -50,6 +50,7 @@ func main() {
 	klTypeStr := flag.String("kl-type", "DAY", "KLType: DAY, WEEK, MONTH, 1M, 5M, 15M, 30M, 60M")
 	rehabTypeStr := flag.String("rehab-type", "FORWARD", "RehabType: NONE, FORWARD, BACKWARD")
 	optTypeStr := flag.String("opt-type", "CALL", "OptionType: CALL, PUT, ALL")
+	tif := flag.Int("tif", 0, "TimeInForce: 0 Day, 1 GTC")
 	flag.Parse()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -91,7 +92,7 @@ func main() {
 	case "modify":
 		handleModify(client, trdEnv, trdMarket, *accID, *orderID, *price, *qty, *op)
 	case "place-order":
-		handlePlaceOrder(client, trdEnv, trdMarket, *accID, trdcommon.TrdSide(*side), trdcommon.OrderType(*orderType), *code, *qty, *price)
+		handlePlaceOrder(client, trdEnv, trdMarket, *accID, trdcommon.TrdSide(*side), trdcommon.OrderType(*orderType), *code, *qty, *price, trdcommon.TimeInForce(*tif))
 	case "snapshot":
 		handleSnapshot(client, *code)
 	case "set-reminder":
@@ -332,7 +333,7 @@ func handleModify(client *gofutuapi.FutuClient, env trdcommon.TrdEnv, market trd
 	})
 }
 
-func handlePlaceOrder(client *gofutuapi.FutuClient, env trdcommon.TrdEnv, market trdcommon.TrdMarket, accID uint64, side trdcommon.TrdSide, oType trdcommon.OrderType, code string, qty float64, price float64) {
+func handlePlaceOrder(client *gofutuapi.FutuClient, env trdcommon.TrdEnv, market trdcommon.TrdMarket, accID uint64, side trdcommon.TrdSide, oType trdcommon.OrderType, code string, qty float64, price float64, tif trdcommon.TimeInForce) {
 	var acc *trdcommon.TrdAcc
 	var err error
 
@@ -381,7 +382,7 @@ func handlePlaceOrder(client *gofutuapi.FutuClient, env trdcommon.TrdEnv, market
 		targetTrdMarket = trdcommon.TrdMarket_TrdMarket_US
 	}
 
-	orderIDEx, orderID, err := client.PlaceOrder(acc, side, oType, pureCode, qty, price, secMarket, targetTrdMarket)
+	orderIDEx, orderID, err := client.PlaceOrder(acc, side, oType, pureCode, qty, price, secMarket, targetTrdMarket, tif)
 	if err != nil {
 		sendError(err)
 		return

@@ -345,7 +345,7 @@ func (c *FutuClient) ModifyOrder(acc *trdcommon.TrdAcc, orderID string, price fl
 	return nil
 }
 
-func (c *FutuClient) PlaceOrder(acc *trdcommon.TrdAcc, trdSide trdcommon.TrdSide, orderType trdcommon.OrderType, code string, qty float64, price float64, secMarket qotcommon.QotMarket, trdMarket trdcommon.TrdMarket) (string, uint64, error) {
+func (c *FutuClient) PlaceOrder(acc *trdcommon.TrdAcc, trdSide trdcommon.TrdSide, orderType trdcommon.OrderType, code string, qty float64, price float64, secMarket qotcommon.QotMarket, trdMarket trdcommon.TrdMarket, timeInForce trdcommon.TimeInForce) (string, uint64, error) {
 	if c == nil || c.Conn == nil {
 		return "", 0, fmt.Errorf("futu client connection is nil")
 	}
@@ -355,16 +355,18 @@ func (c *FutuClient) PlaceOrder(acc *trdcommon.TrdAcc, trdSide trdcommon.TrdSide
 	side := int32(trdSide)
 	oType := int32(orderType)
 	sm := int32(secMarket)
+	tif := int32(timeInForce)
 	req := trdplaceorder.Request{
 		C2S: &trdplaceorder.C2S{
-			PacketID:  c.GeneratePacketID(),
-			Header:    header,
-			TrdSide:   &side,
-			OrderType: &oType,
-			Code:      &code,
-			Qty:       &qty,
-			Price:     &price,
-			SecMarket: &sm,
+			PacketID:    c.GeneratePacketID(),
+			Header:      header,
+			TrdSide:     &side,
+			OrderType:   &oType,
+			Code:        &code,
+			Qty:         &qty,
+			Price:       &price,
+			SecMarket:   &sm,
+			TimeInForce: &tif,
 		},
 	}
 
