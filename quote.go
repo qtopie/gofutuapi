@@ -8,6 +8,9 @@ import (
 	"github.com/qtopie/gofutuapi/gen/qot/qotgetkl"
 	"github.com/qtopie/gofutuapi/gen/qot/qotgetoptionchain"
 	"github.com/qtopie/gofutuapi/gen/qot/qotgetsecuritysnapshot"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetusersecurity"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetusersecuritygroup"
+	"github.com/qtopie/gofutuapi/gen/qot/qotmodifyusersecurity"
 	"github.com/qtopie/gofutuapi/gen/qot/qotrequesthistorykl"
 	"github.com/qtopie/gofutuapi/gen/qot/qotrequestrehab"
 	"github.com/qtopie/gofutuapi/gen/qot/qotsetpricereminder"
@@ -354,4 +357,102 @@ func (c *FutuClient) GetOptionChain(owner *common.Security, beginTime, endTime s
 	}
 
 	return resp.GetS2C().GetOptionChain(), nil
+}
+
+// --- User Security ---
+
+func (c *FutuClient) GetUserSecurityGroup(groupType qotgetusersecuritygroup.GroupType) ([]*qotgetusersecuritygroup.GroupData, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	g := int32(groupType)
+	req := qotgetusersecuritygroup.Request{
+		C2S: &qotgetusersecuritygroup.C2S{
+			GroupType: &g,
+		},
+	}
+	c.Conn.SendProto(QOT_GETUSERSECURITYGROUP, &req)
+
+	reply, err := c.Conn.NextReplyPacket()
+	if err != nil {
+		return nil, fmt.Errorf("get user security group failed: %w", err)
+	}
+
+	var resp qotgetusersecuritygroup.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get user security group unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get user security group failed: %s", resp.GetRetMsg())
+	}
+
+	if resp.GetS2C() == nil {
+		return nil, nil
+	}
+
+	return resp.GetS2C().GetGroupList(), nil
+}
+
+func (c *FutuClient) GetUserSecurity(groupName string) ([]*common.SecurityStaticInfo, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := qotgetusersecurity.Request{
+		C2S: &qotgetusersecurity.C2S{
+			GroupName: &groupName,
+		},
+	}
+	c.Conn.SendProto(QOT_GETUSERSECURITY, &req)
+
+	reply, err := c.Conn.NextReplyPacket()
+	if err != nil {
+		return nil, fmt.Errorf("get user security failed: %w", err)
+	}
+
+	var resp qotgetusersecurity.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get user security unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get user security failed: %s", resp.GetRetMsg())
+	}
+
+	if resp.GetS2C() == nil {
+		return nil, nil
+	}
+
+	return resp.GetS2C().GetStaticInfoList(), nil
+}
+
+func (c *FutuClient) ModifyUserSecurity(groupName string, op qotmodifyusersecurity.ModifyUserSecurityOp, securityList []*common.Security) error {
+	if c == nil || c.Conn == nil {
+		return fmt.Errorf("futu client connection is nil")
+	}
+
+	o := int32(op)
+	req := qotmodifyusersecurity.Request{
+		C2S: &qotmodifyusersecurity.C2S{
+			GroupName:    &groupName,
+			Op:           &o,
+			SecurityList: securityList,
+		},
+	}
+	c.Conn.SendProto(QOT_MODIFYUSERSECURITY, &req)
+
+	reply, err := c.Conn.NextReplyPacket()
+	if err != nil {
+		return fmt.Errorf("modify user security failed: %w", err)
+	}
+
+	var resp qotmodifyusersecurity.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return fmt.Errorf("modify user security unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return fmt.Errorf("modify user security failed: %s", resp.GetRetMsg())
+	}
+
+	return nil
 }

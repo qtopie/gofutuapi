@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Dashboard</title>
+    <script src="plotly.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+        .stock-name { font-size: 1.2rem; font-weight: bold; color: #333; }
+        .stock-code { color: #888; font-size: 0.9rem; }
+        .price-section { display: flex; align-items: baseline; gap: 10px; }
+        .current-price { font-size: 2rem; font-weight: bold; }
+        .change { font-size: 1.1rem; font-weight: bold; }
+        .chart { width: 100%; height: 300px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-Time Stock Dashboard</h1>
+        <div class="grid" id="dashboard"></div>
+    </div>
+    <script>
+        const dashboard = document.getElementById('dashboard');
+        
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/portfolio');
+                const positions = await res.json();
+                if (!positions) return;
+                
+                for (const pos of positions) {
+                    createCard(pos.code, pos.name);
+                    updateSnapshot(pos.code);
+                    loadKLine(pos.code);
+                }
+                
+                setInterval(() => {
+                    positions.forEach(pos => updateSnapshot(pos.code));
+                }, 5000); // 5 seconds refresh
+            } catch (err) {
+                console.error("Failed to load portfolio", err);
+            }
+        }
+        
+        function createCard(code, name) {
+            const cardId = `card-${code.replace('.', '-')}`;
+            if (document.getElementById(cardId)) return;
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.id = cardId;
+            card.innerHTML = `
+                <div class="card-header">
+                    <div>
+                        <div class="stock-name">${name}</div>
+                        <div class="stock-code">${code}</div>
+                    </div>
+                    <div class="price-section" id="price-${code.replace('.', '-')}">
+                        <div class="current-price">--</div>
+                        <div class="change">--%</div>
+                    </div>
+                </div>
+                <div id="chart-${code.replace('.', '-')}" class="chart"></div>
+            `;
+            dashboard.appendChild(card);
+        }
+        
+        async function updateSnapshot(code) {
+            try {
+                const res = await fetch(`/api/snapshot?code=${code}`);
+                const data = await res.json();
+                
+                const cardId = code.replace('.', '-');
+                const priceDiv = document.querySelector(`#price-${cardId} .current-price`);
+                const changeDiv = document.querySelector(`#price-${cardId} .change`);
+                
+                if (data && data.basic) {
+                    const currentPrice = data.basic.curPrice;
+                    const lastClose = data.basic.lastClosePrice;
+                    const changeVal = currentPrice - lastClose;
+                    const changePct = (changeVal / lastClose) * 100;
+                    
+                    priceDiv.textContent = currentPrice.toFixed(2);
+                    changeDiv.textContent = (changePct > 0 ? '+' : '') + changePct.toFixed(2) + '%';
+                    
+                    if (changePct > 0) {
+                        changeDiv.style.color = '#4caf50'; // Green
+                    } else if (changePct < 0) {
+                        changeDiv.style.color = '#f44336'; // Red
+                    } else {
+                        changeDiv.style.color = '#9e9e9e'; // Gray
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch snapshot for " + code, err);
+            }
+        }
+        
+        async function loadKLine(code) {
+            try {
+                const res = await fetch(`/api/kline?code=${code}`);
+                const data = await res.json();
+                
+                if (!data || data.length === 0) return;
+                
+                const times = data.map(d => d.time);
+                const opens = data.map(d => d.open);
+                const highs = data.map(d => d.high);
+                const lows = data.map(d => d.low);
+                const closes = data.map(d => d.close);
+                
+                const trace = {
+                    x: times,
+                    close: closes,
+                    decreasing: {line: {color: '#f44336'}}, 
+                    high: highs,
+                    increasing: {line: {color: '#4caf50'}}, 
+                    line: {color: 'rgba(31,119,180,1)'},
+                    low: lows,
+                    open: opens,
+                    type: 'candlestick',
+                    xaxis: 'x',
+                    yaxis: 'y'
+                };
+                
+                const layout = {
+                    margin: { t: 10, b: 30, l: 40, r: 10 },
+                    xaxis: { rangeslider: { visible: false } },
+                    yaxis: { fixedrange: false }
+                };
+                
+                Plotly.newPlot(`chart-${code.replace('.', '-')}`, [trace], layout, {displayModeBar: false});
+            } catch (err) {
+                console.error("Failed to fetch kline for " + code, err);
+            }
+        }
+        
+        loadDashboard();
+    </script>
+</body>
+</html>

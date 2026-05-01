@@ -13,6 +13,8 @@ import (
 
 	"github.com/qtopie/gofutuapi"
 	qotcommon "github.com/qtopie/gofutuapi/gen/qot/common"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetusersecuritygroup"
+	"github.com/qtopie/gofutuapi/gen/qot/qotmodifyusersecurity"
 	"github.com/qtopie/gofutuapi/gen/qot/qotsetpricereminder"
 	"github.com/qtopie/gofutuapi/gen/qot/qotstockfilter"
 	"github.com/qtopie/gofutuapi/gen/trade/trdupdateorder"
@@ -27,7 +29,7 @@ type Response struct {
 }
 
 func main() {
-	cmd := flag.String("cmd", "portfolio", "command to run: portfolio, orders, accounts, modify, place-order, snapshot, set-reminder, watch, filter, fills, history-kl, option-expiration, option-chain")
+	cmd := flag.String("cmd", "portfolio", "command to run: portfolio, orders, accounts, modify, place-order, snapshot, set-reminder, watch, filter, fills, history-kl, option-expiration, option-chain, user-groups, user-security")
 	marketFlag := flag.String("market", "HK", "market: HK, US, SH, SZ")
 	envFlag := flag.String("env", "REAL", "environment: REAL, SIMULATE")
 	accID := flag.Uint64("acc-id", 0, "specific account ID")
@@ -38,6 +40,8 @@ func main() {
 	side := flag.Int("side", 1, "trd side: 1 Buy, 2 Sell")
 	orderType := flag.Int("type", 1, "order type: 1 Normal")
 	code := flag.String("code", "", "security code(s)")
+	groupName := flag.String("group", "All", "user security group name")
+	groupType := flag.Int("group-type", 0, "user security group type: 0 All, 1 Custom, 2 System")
 	remindType := flag.Int("remind-type", 1, "PriceReminderType: 1 PriceUp, 2 PriceDown...")
 	remindFreq := flag.Int("remind-freq", 1, "PriceReminderFreq: 1 Always, 2 OnceADay...")
 	remindValue := flag.Float64("remind-value", 0, "reminder trigger value")
@@ -109,6 +113,12 @@ func main() {
 		handleOptionExpiration(client, *code)
 	case "option-chain":
 		handleOptionChain(client, *code, *beginTime, *endTime, *optTypeStr)
+	case "user-groups":
+		handleUserGroups(client, *groupType)
+	case "user-security":
+		handleUserSecurity(client, *groupName)
+	case "modify-security":
+		handleModifySecurity(client, *groupName, *op, *code)
 	default:
 		sendError(fmt.Errorf("unknown command: %s", *cmd))
 	}
@@ -653,6 +663,69 @@ func handleOptionChain(client *gofutuapi.FutuClient, code string, begin, end str
 	}
 
 	sendSuccess(chain)
+}
+
+func handleUserGroups(client *gofutuapi.FutuClient, gType int) {
+	groups, err := client.GetUserSecurityGroup(qotgetusersecuritygroup.GroupType(gType))
+	if err != nil {
+		sendError(err)
+		return
+	}
+	sendSuccess(groups)
+}
+
+func handleUserSecurity(client *gofutuapi.FutuClient, groupName string) {
+	securityList, err := client.GetUserSecurity(groupName)
+	if err != nil {
+		sendError(err)
+		return
+	}
+	sendSuccess(securityList)
+}
+
+func handleModifySecurity(client *gofutuapi.FutuClient, groupName string, op int, codes string) {
+	if codes == "" {
+		sendError(fmt.Errorf("code is required for modify-security"))
+		return
+	}
+
+	codeList := strings.Split(codes, ",")
+	var securityList []*qotcommon.Security
+	for _, c := range codeList {
+		market, symbol, found := strings.Cut(strings.TrimSpace(c), ".")
+		if !found {
+			sendError(fmt.Errorf("invalid code format: %s", c))
+			return
+		}
+		var m int32
+		switch strings.ToUpper(market) {
+		case "HK":
+			m = int32(qotcommon.QotMarket_QotMarket_HK_Security)
+		case "US":
+			m = int32(qotcommon.QotMarket_QotMarket_US_Security)
+		case "SH":
+			m = int32(qotcommon.QotMarket_QotMarket_CNSH_Security)
+		case "SZ":
+			m = int32(qotcommon.QotMarket_QotMarket_CNSZ_Security)
+		default:
+			sendError(fmt.Errorf("unsupported market: %s", market))
+			return
+		}
+		securityList = append(securityList, &qotcommon.Security{
+			Market: &m,
+			Code:   &symbol,
+		})
+	}
+
+	err := client.ModifyUserSecurity(groupName, qotmodifyusersecurity.ModifyUserSecurityOp(op), securityList)
+	if err != nil {
+		sendError(err)
+		return
+	}
+
+	sendSuccess(map[string]interface{}{
+		"status": "success",
+	})
 }
 
 func sendSuccess(data interface{}) {

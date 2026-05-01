@@ -227,6 +227,10 @@ func (conn *FutuApiConn) RegisterHook(f func(protoId ProtoId, response *ProtoRes
 	conn.pushHook = f
 }
 
+func (conn *FutuApiConn) GetConnID() uint64 {
+	return conn.connId
+}
+
 func (conn *FutuApiConn) Close() error {
 	if conn.Conn != nil {
 		log.Println("closing connection", conn.connId)
