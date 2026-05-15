@@ -84,8 +84,8 @@ func main() {
 	}
 
 	fmt.Printf("Placing REAL order: %s %v %s @ %.2f (Acc: %d)\n", envStr, sideStr, code, price, accID)
-	conn.SendProto(gofutuapi.TRD_PLACEORDER, &orderReq)
-	reply, err := conn.NextReplyPacket()
+	sn := conn.SendProto(gofutuapi.TRD_PLACEORDER, &orderReq)
+	reply, err := conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		log.Fatalf("Place order failed: %v", err)
 	}

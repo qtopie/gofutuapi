@@ -47,8 +47,8 @@ func main() {
 			TrdCategory: &trdCategory,
 		},
 	}
-	conn.SendProto(gofutuapi.TRD_GETACCLIST, &accReq)
-	reply, err := conn.NextReplyPacket()
+	sn := conn.SendProto(gofutuapi.TRD_GETACCLIST, &accReq)
+	reply, err := conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		log.Fatalf("Get acc list failed: %v", err)
 	}
@@ -108,8 +108,8 @@ func main() {
 	}
 
 	fmt.Printf("Modifying order %d: New Price %.2f, New Qty %.2f\n", orderID, newPrice, newQty)
-	conn.SendProto(gofutuapi.TRD_MODIFYORDER, &modifyReq)
-	reply, err = conn.NextReplyPacket()
+	sn = conn.SendProto(gofutuapi.TRD_MODIFYORDER, &modifyReq)
+	reply, err = conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		log.Fatalf("Modify order failed: %v", err)
 	}

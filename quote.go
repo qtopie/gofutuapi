@@ -1,18 +1,31 @@
 package gofutuapi
 
 import (
+	"time"
 	"fmt"
 
 	"github.com/qtopie/gofutuapi/gen/qot/common"
 	"github.com/qtopie/gofutuapi/gen/qot/getoptionexpirationdate"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetcapitaldistribution"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetcapitalflow"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetbroker"
 	"github.com/qtopie/gofutuapi/gen/qot/qotgetkl"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetmarketstate"
 	"github.com/qtopie/gofutuapi/gen/qot/qotgetoptionchain"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetorderbook"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetownerplate"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetplatesecurity"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetplateset"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetrt"
 	"github.com/qtopie/gofutuapi/gen/qot/qotgetsecuritysnapshot"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetticker"
 	"github.com/qtopie/gofutuapi/gen/qot/qotgetusersecurity"
 	"github.com/qtopie/gofutuapi/gen/qot/qotgetusersecuritygroup"
+	"github.com/qtopie/gofutuapi/gen/qot/qotgetwarrant"
 	"github.com/qtopie/gofutuapi/gen/qot/qotmodifyusersecurity"
 	"github.com/qtopie/gofutuapi/gen/qot/qotrequesthistorykl"
 	"github.com/qtopie/gofutuapi/gen/qot/qotrequestrehab"
+	"github.com/qtopie/gofutuapi/gen/qot/qotrequesttradedate"
 	"github.com/qtopie/gofutuapi/gen/qot/qotsetpricereminder"
 	"github.com/qtopie/gofutuapi/gen/qot/qotstockfilter"
 	"github.com/qtopie/gofutuapi/gen/qot/qotsub"
@@ -34,9 +47,9 @@ func (c *FutuClient) Subscribe(securityList []*common.Security, subTypeList []in
 			IsRegOrUnRegPush: &isRegPush,
 		},
 	}
-	c.Conn.SendProto(QOT_SUB, &req)
+	sn := c.Conn.SendProto(QOT_SUB, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return fmt.Errorf("subscribe failed: %w", err)
 	}
@@ -69,9 +82,9 @@ func (c *FutuClient) GetKLine(security *common.Security, klType common.KLType, r
 			ReqNum:    &count,
 		},
 	}
-	c.Conn.SendProto(QOT_GETKL, &req)
+	sn := c.Conn.SendProto(QOT_GETKL, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get kline failed: %w", err)
 	}
@@ -87,6 +100,93 @@ func (c *FutuClient) GetKLine(security *common.Security, klType common.KLType, r
 	return resp.GetS2C().GetKlList(), nil
 }
 
+func (c *FutuClient) GetTicker(security *common.Security, maxNum int32) ([]*common.Ticker, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := qotgetticker.Request{
+		C2S: &qotgetticker.C2S{
+			Security:  security,
+			MaxRetNum: &maxNum,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETTICKER, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get ticker failed: %w", err)
+	}
+
+	var resp qotgetticker.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get ticker unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get ticker failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetTickerList(), nil
+}
+
+func (c *FutuClient) GetOrderBook(security *common.Security, num int32) ([]*common.OrderBook, []*common.OrderBook, error) {
+	if c == nil || c.Conn == nil {
+		return nil, nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := qotgetorderbook.Request{
+		C2S: &qotgetorderbook.C2S{
+			Security: security,
+			Num:      &num,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETORDERBOOK, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, nil, fmt.Errorf("get order book failed: %w", err)
+	}
+
+	var resp qotgetorderbook.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, nil, fmt.Errorf("get order book unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, nil, fmt.Errorf("get order book failed: %s", resp.GetRetMsg())
+	}
+
+	s2c := resp.GetS2C()
+	return s2c.GetOrderBookAskList(), s2c.GetOrderBookBidList(), nil
+}
+
+func (c *FutuClient) GetRTData(security *common.Security) ([]*common.TimeShare, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := qotgetrt.Request{
+		C2S: &qotgetrt.C2S{
+			Security: security,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETRT, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get rt data failed: %w", err)
+	}
+
+	var resp qotgetrt.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get rt data unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get rt data failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetRtList(), nil
+}
+
 func (c *FutuClient) GetSecuritySnapshot(securityList []*common.Security) ([]*qotgetsecuritysnapshot.Snapshot, error) {
 	if c == nil || c.Conn == nil {
 		return nil, fmt.Errorf("futu client connection is nil")
@@ -97,9 +197,9 @@ func (c *FutuClient) GetSecuritySnapshot(securityList []*common.Security) ([]*qo
 			SecurityList: securityList,
 		},
 	}
-	c.Conn.SendProto(QOT_GETSECURITYSNAPSHOT, &req)
+	sn := c.Conn.SendProto(QOT_GETSECURITYSNAPSHOT, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get security snapshot failed: %w", err)
 	}
@@ -137,9 +237,9 @@ func (c *FutuClient) SetPriceReminder(security *common.Security, op qotsetpricer
 			Note:     &note,
 		},
 	}
-	c.Conn.SendProto(QOT_SETPRICEREMINDER, &req)
+	sn := c.Conn.SendProto(QOT_SETPRICEREMINDER, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return 0, fmt.Errorf("set price reminder failed: %w", err)
 	}
@@ -178,9 +278,9 @@ func (c *FutuClient) StockFilter(market common.QotMarket, filters *qotstockfilte
 	req := qotstockfilter.Request{
 		C2S: filters,
 	}
-	c.Conn.SendProto(QOT_STOCKFILTER, &req)
+	sn := c.Conn.SendProto(QOT_STOCKFILTER, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("stock filter failed: %w", err)
 	}
@@ -223,9 +323,9 @@ func (c *FutuClient) RequestHistoryKL(security *common.Security, klType common.K
 			req.C2S.MaxAckKLNum = &maxNum
 		}
 
-		c.Conn.SendProto(QOT_REQUESTHISTORYKL, &req)
+		sn := c.Conn.SendProto(QOT_REQUESTHISTORYKL, &req)
 
-		reply, err := c.Conn.NextReplyPacket()
+		reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 		if err != nil {
 			return nil, fmt.Errorf("request history kl failed: %w", err)
 		}
@@ -267,9 +367,9 @@ func (c *FutuClient) RequestRehab(security *common.Security) ([]*common.Rehab, e
 			Security: security,
 		},
 	}
-	c.Conn.SendProto(QOT_REQUESTREHAB, &req)
+	sn := c.Conn.SendProto(QOT_REQUESTREHAB, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("request rehab failed: %w", err)
 	}
@@ -301,9 +401,9 @@ func (c *FutuClient) GetOptionExpirationDate(owner *common.Security) ([]*getopti
 			Owner: owner,
 		},
 	}
-	c.Conn.SendProto(QOT_GETOPTIONEXPIRATIONDATE, &req)
+	sn := c.Conn.SendProto(QOT_GETOPTIONEXPIRATIONDATE, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get option expiration date failed: %w", err)
 	}
@@ -337,9 +437,9 @@ func (c *FutuClient) GetOptionChain(owner *common.Security, beginTime, endTime s
 			Type:      &t,
 		},
 	}
-	c.Conn.SendProto(QOT_GETOPTIONCHAIN, &req)
+	sn := c.Conn.SendProto(QOT_GETOPTIONCHAIN, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get option chain failed: %w", err)
 	}
@@ -372,9 +472,9 @@ func (c *FutuClient) GetUserSecurityGroup(groupType qotgetusersecuritygroup.Grou
 			GroupType: &g,
 		},
 	}
-	c.Conn.SendProto(QOT_GETUSERSECURITYGROUP, &req)
+	sn := c.Conn.SendProto(QOT_GETUSERSECURITYGROUP, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get user security group failed: %w", err)
 	}
@@ -404,9 +504,9 @@ func (c *FutuClient) GetUserSecurity(groupName string) ([]*common.SecurityStatic
 			GroupName: &groupName,
 		},
 	}
-	c.Conn.SendProto(QOT_GETUSERSECURITY, &req)
+	sn := c.Conn.SendProto(QOT_GETUSERSECURITY, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get user security failed: %w", err)
 	}
@@ -439,9 +539,9 @@ func (c *FutuClient) ModifyUserSecurity(groupName string, op qotmodifyusersecuri
 			SecurityList: securityList,
 		},
 	}
-	c.Conn.SendProto(QOT_MODIFYUSERSECURITY, &req)
+	sn := c.Conn.SendProto(QOT_MODIFYUSERSECURITY, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return fmt.Errorf("modify user security failed: %w", err)
 	}
@@ -455,4 +555,275 @@ func (c *FutuClient) ModifyUserSecurity(groupName string, op qotmodifyusersecuri
 	}
 
 	return nil
+}
+
+// --- Market Context ---
+
+func (c *FutuClient) GetMarketState(securityList []*common.Security) ([]*qotgetmarketstate.MarketInfo, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := qotgetmarketstate.Request{
+		C2S: &qotgetmarketstate.C2S{
+			SecurityList: securityList,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETMARKETSTATE, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get market state failed: %w", err)
+	}
+
+	var resp qotgetmarketstate.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get market state unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get market state failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetMarketInfoList(), nil
+}
+
+func (c *FutuClient) RequestTradeDate(market common.QotMarket, beginTime, endTime string) ([]*qotrequesttradedate.TradeDate, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	m := int32(market)
+	req := qotrequesttradedate.Request{
+		C2S: &qotrequesttradedate.C2S{
+			Market:    &m,
+			BeginTime: &beginTime,
+			EndTime:   &endTime,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_REQUESTTRADEDATE, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("request trade date failed: %w", err)
+	}
+
+	var resp qotrequesttradedate.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("request trade date unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("request trade date failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetTradeDateList(), nil
+}
+
+func (c *FutuClient) GetPlateList(market common.QotMarket, plateClass common.PlateSetType) ([]*common.PlateInfo, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	m := int32(market)
+	p := int32(plateClass)
+	req := qotgetplateset.Request{
+		C2S: &qotgetplateset.C2S{
+			Market:       &m,
+			PlateSetType: &p,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETPLATESET, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get plate set failed: %w", err)
+	}
+
+	var resp qotgetplateset.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get plate set unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get plate set failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetPlateInfoList(), nil
+}
+
+func (c *FutuClient) GetPlateSecurity(plate *common.Security, sortField common.SortField, ascending bool) ([]*common.SecurityStaticInfo, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	s := int32(sortField)
+	req := qotgetplatesecurity.Request{
+		C2S: &qotgetplatesecurity.C2S{
+			Plate:     plate,
+			SortField: &s,
+			Ascend:    &ascending,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETPLATESECURITY, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get plate security failed: %w", err)
+	}
+
+	var resp qotgetplatesecurity.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get plate security unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get plate security failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetStaticInfoList(), nil
+}
+
+func (c *FutuClient) GetOwnerPlate(securityList []*common.Security) ([]*qotgetownerplate.SecurityOwnerPlate, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := qotgetownerplate.Request{
+		C2S: &qotgetownerplate.C2S{
+			SecurityList: securityList,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETOWNERPLATE, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get owner plate failed: %w", err)
+	}
+
+	var resp qotgetownerplate.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get owner plate unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get owner plate failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetOwnerPlateList(), nil
+}
+
+// --- Specialized Data ---
+
+func (c *FutuClient) GetCapitalFlow(security *common.Security) ([]*qotgetcapitalflow.CapitalFlowItem, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := qotgetcapitalflow.Request{
+		C2S: &qotgetcapitalflow.C2S{
+			Security: security,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETCAPITALFLOW, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get capital flow failed: %w", err)
+	}
+
+	var resp qotgetcapitalflow.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get capital flow unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get capital flow failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetFlowItemList(), nil
+}
+
+func (c *FutuClient) GetCapitalDistribution(security *common.Security) (*qotgetcapitaldistribution.S2C, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := qotgetcapitaldistribution.Request{
+		C2S: &qotgetcapitaldistribution.C2S{
+			Security: security,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETCAPITALDISTRIBUTION, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get capital distribution failed: %w", err)
+	}
+
+	var resp qotgetcapitaldistribution.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get capital distribution unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get capital distribution failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C(), nil
+}
+
+func (c *FutuClient) StockFilterWarrant(filters *qotgetwarrant.C2S) (*qotgetwarrant.S2C, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	if filters.Begin == nil {
+		filters.Begin = proto.Int32(0)
+	}
+	if filters.Num == nil {
+		filters.Num = proto.Int32(50)
+	}
+
+	req := qotgetwarrant.Request{
+		C2S: filters,
+	}
+	sn := c.Conn.SendProto(QOT_GETWARRANT, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("stock filter warrant failed: %w", err)
+	}
+
+	var resp qotgetwarrant.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("stock filter warrant unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("stock filter warrant failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C(), nil
+}
+
+func (c *FutuClient) GetBrokerQueue(security *common.Security) ([]*common.Broker, []*common.Broker, error) {
+	if c == nil || c.Conn == nil {
+		return nil, nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := qotgetbroker.Request{
+		C2S: &qotgetbroker.C2S{
+			Security: security,
+		},
+	}
+	sn := c.Conn.SendProto(QOT_GETBROKER, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, nil, fmt.Errorf("get broker queue failed: %w", err)
+	}
+
+	var resp qotgetbroker.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, nil, fmt.Errorf("get broker queue unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, nil, fmt.Errorf("get broker queue failed: %s", resp.GetRetMsg())
+	}
+
+	s2c := resp.GetS2C()
+	return s2c.GetBrokerAskList(), s2c.GetBrokerBidList(), nil
 }

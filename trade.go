@@ -1,6 +1,7 @@
 package gofutuapi
 
 import (
+	"time"
 	"fmt"
 
 	"github.com/qtopie/gofutuapi/gen/common"
@@ -8,6 +9,9 @@ import (
 	trdcommon "github.com/qtopie/gofutuapi/gen/trade/common"
 	"github.com/qtopie/gofutuapi/gen/trade/trdgetacclist"
 	"github.com/qtopie/gofutuapi/gen/trade/trdgetfunds"
+	"github.com/qtopie/gofutuapi/gen/trade/trdgetmarginratio"
+	"github.com/qtopie/gofutuapi/gen/trade/trdgetmaxtrdqtys"
+	"github.com/qtopie/gofutuapi/gen/trade/trdgetorderfee"
 	"github.com/qtopie/gofutuapi/gen/trade/trdgetorderlist"
 	"github.com/qtopie/gofutuapi/gen/trade/trdgetorderfilllist"
 	"github.com/qtopie/gofutuapi/gen/trade/trdgetpositionlist"
@@ -72,9 +76,9 @@ func (c *FutuClient) getTradeAccounts(trdCategory int32, needGeneralSecAccount b
 			NeedGeneralSecAccount: &needGeneralSecAccount,
 		},
 	}
-	c.Conn.SendProto(TRD_GETACCLIST, &req)
+	sn := c.Conn.SendProto(TRD_GETACCLIST, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get acc list failed: %w", err)
 	}
@@ -115,9 +119,9 @@ func (c *FutuClient) UnlockTrade(password string, securityFirm trdcommon.Securit
 			SecurityFirm: &firm,
 		},
 	}
-	c.Conn.SendProto(TRD_UNLOCKTRADE, &req)
+	sn := c.Conn.SendProto(TRD_UNLOCKTRADE, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return fmt.Errorf("unlock trade failed: %w", err)
 	}
@@ -150,9 +154,9 @@ func (c *FutuClient) GetFundsForAccount(acc *trdcommon.TrdAcc, refreshCache bool
 			Currency:     &currency,
 		},
 	}
-	c.Conn.SendProto(TRD_GETFUNDS, &req)
+	sn := c.Conn.SendProto(TRD_GETFUNDS, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get funds failed: %w", err)
 	}
@@ -184,9 +188,9 @@ func (c *FutuClient) GetPositionsForAccount(acc *trdcommon.TrdAcc, refreshCache 
 			RefreshCache: &refreshCache,
 		},
 	}
-	c.Conn.SendProto(TRD_GETPOSITIONLIST, &req)
+	sn := c.Conn.SendProto(TRD_GETPOSITIONLIST, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get position list failed: %w", err)
 	}
@@ -238,9 +242,9 @@ func (c *FutuClient) GetOrderListForAccount(acc *trdcommon.TrdAcc, filterStatusL
 			RefreshCache:     &refreshCache,
 		},
 	}
-	c.Conn.SendProto(TRD_GETORDERLIST, &req)
+	sn := c.Conn.SendProto(TRD_GETORDERLIST, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get order list failed: %w", err)
 	}
@@ -280,9 +284,9 @@ func (c *FutuClient) GetOrderFillListForAccount(acc *trdcommon.TrdAcc, refreshCa
 			RefreshCache: &refreshCache,
 		},
 	}
-	c.Conn.SendProto(TRD_GETORDERFILLLIST, &req)
+	sn := c.Conn.SendProto(TRD_GETORDERFILLLIST, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get order fill list failed: %w", err)
 	}
@@ -327,9 +331,9 @@ func (c *FutuClient) ModifyOrder(acc *trdcommon.TrdAcc, orderID string, price fl
 		return fmt.Errorf("invalid order ID format for Go SDK (numeric required): %s", orderID)
 	}
 
-	c.Conn.SendProto(TRD_MODIFYORDER, &req)
+	sn := c.Conn.SendProto(TRD_MODIFYORDER, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return fmt.Errorf("modify order failed: %w", err)
 	}
@@ -370,9 +374,9 @@ func (c *FutuClient) PlaceOrder(acc *trdcommon.TrdAcc, trdSide trdcommon.TrdSide
 		},
 	}
 
-	c.Conn.SendProto(TRD_PLACEORDER, &req)
+	sn := c.Conn.SendProto(TRD_PLACEORDER, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return "", 0, fmt.Errorf("place order failed: %w", err)
 	}
@@ -433,4 +437,98 @@ func (c *FutuClient) GeneratePacketID() *common.PacketID {
 		ConnID:   &connID,
 		SerialNo: &serialNo,
 	}
+}
+
+// --- Advanced Queries ---
+
+func (c *FutuClient) GetOrderFee(acc *trdcommon.TrdAcc, orderIdExList []string) ([]*trdcommon.OrderFee, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := trdgetorderfee.Request{
+		C2S: &trdgetorderfee.C2S{
+			Header:        c.tradeHeaderForAccount(acc, trdcommon.TrdMarket_TrdMarket_Unknown),
+			OrderIdExList: orderIdExList,
+		},
+	}
+	sn := c.Conn.SendProto(TRD_GETORDERFEE, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get order fee failed: %w", err)
+	}
+
+	var resp trdgetorderfee.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get order fee unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get order fee failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetOrderFeeList(), nil
+}
+
+func (c *FutuClient) GetMaxTrdQtys(acc *trdcommon.TrdAcc, orderType trdcommon.OrderType, code string, price float64, secMarket qotcommon.QotMarket) (*trdcommon.MaxTrdQtys, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	ot := int32(orderType)
+	sm := int32(secMarket)
+	req := trdgetmaxtrdqtys.Request{
+		C2S: &trdgetmaxtrdqtys.C2S{
+			Header:    c.tradeHeaderForAccount(acc, trdcommon.TrdMarket_TrdMarket_Unknown),
+			OrderType: &ot,
+			Code:      &code,
+			Price:     &price,
+			SecMarket: &sm,
+		},
+	}
+	sn := c.Conn.SendProto(TRD_GETMAXTRDQTYS, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get max trd qtys failed: %w", err)
+	}
+
+	var resp trdgetmaxtrdqtys.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get max trd qtys unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get max trd qtys failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetMaxTrdQtys(), nil
+}
+
+func (c *FutuClient) GetMarginRatio(acc *trdcommon.TrdAcc, securityList []*qotcommon.Security) ([]*trdgetmarginratio.MarginRatioInfo, error) {
+	if c == nil || c.Conn == nil {
+		return nil, fmt.Errorf("futu client connection is nil")
+	}
+
+	req := trdgetmarginratio.Request{
+		C2S: &trdgetmarginratio.C2S{
+			Header:       c.tradeHeaderForAccount(acc, trdcommon.TrdMarket_TrdMarket_Unknown),
+			SecurityList: securityList,
+		},
+	}
+	sn := c.Conn.SendProto(TRD_GETMARGINRATIO, &req)
+
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("get margin ratio failed: %w", err)
+	}
+
+	var resp trdgetmarginratio.Response
+	if err := proto.Unmarshal(reply.Payload, &resp); err != nil {
+		return nil, fmt.Errorf("get margin ratio unmarshal failed: %w", err)
+	}
+	if resp.GetRetType() != 0 {
+		return nil, fmt.Errorf("get margin ratio failed: %s", resp.GetRetMsg())
+	}
+
+	return resp.GetS2C().GetMarginRatioInfoList(), nil
 }

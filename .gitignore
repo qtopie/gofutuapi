@@ -2,3 +2,4 @@
 .gemini/
 cmd/_data
 .venv/
+*.log

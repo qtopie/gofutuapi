@@ -41,8 +41,9 @@ type FutuApiConn struct {
 
 	// server push packet on receive hook
 	pushHook func(protoId ProtoId, response *ProtoResponse)
-	// server reply packet queue
-	replyQueue chan *ProtoResponse
+	// pending replies map
+	pendingReplies map[int32]chan *ProtoResponse
+	repliesMu      sync.Mutex
 
 	connId       uint64
 	nextPacketSN int32
@@ -64,9 +65,9 @@ func OpenContext(ctx context.Context, option FutuApiOption) (*FutuApiConn, error
 // openWithRetry is the internal constructor
 func openWithRetry(ctx context.Context, option FutuApiOption) (*FutuApiConn, error) {
 	c := &FutuApiConn{
-		Context:    ctx,
-		option:     option,
-		replyQueue: make(chan *ProtoResponse, 128),
+		Context:        ctx,
+		option:         option,
+		pendingReplies: make(map[int32]chan *ProtoResponse),
 	}
 
 	if err := c.connect(); err != nil {
@@ -190,7 +191,7 @@ func (conn *FutuApiConn) keepalive(interval int) {
 	}
 }
 
-func (conn *FutuApiConn) SendProto(protoId ProtoId, req proto.Message) int {
+func (conn *FutuApiConn) SendProto(protoId ProtoId, req proto.Message) int32 {
 	conn.mu.Lock()
 	defer conn.mu.Unlock()
 
@@ -202,6 +203,12 @@ func (conn *FutuApiConn) SendProto(protoId ProtoId, req proto.Message) int {
 	}
 
 	packetSN := atomic.AddInt32(&conn.nextPacketSN, 1) - 1
+
+	// Register pending reply
+	replyCh := make(chan *ProtoResponse, 1)
+	conn.repliesMu.Lock()
+	conn.pendingReplies[packetSN] = replyCh
+	conn.repliesMu.Unlock()
 
 	header := NewHeader()
 	header.ProtoID = protoId
@@ -220,7 +227,7 @@ func (conn *FutuApiConn) SendProto(protoId ProtoId, req proto.Message) int {
 		go conn.tryReconnect()
 	}
 
-	return int(packetSN)
+	return packetSN
 }
 
 func (conn *FutuApiConn) RegisterHook(f func(protoId ProtoId, response *ProtoResponse)) {
@@ -239,17 +246,28 @@ func (conn *FutuApiConn) Close() error {
 	return nil
 }
 
-func (conn *FutuApiConn) NextReplyPacket() (*ProtoResponse, error) {
-	afterCh := time.After(10 * time.Second)
-	for {
-		select {
-		case d := <-conn.replyQueue:
-			return d, nil
-		case <-afterCh:
-			return nil, errors.New("timeout to read response")
-		case <-conn.Done():
-			return nil, errors.New("connection closed")
-		}
+func (conn *FutuApiConn) WaitReply(sn int32, timeout time.Duration) (*ProtoResponse, error) {
+	conn.repliesMu.Lock()
+	ch, ok := conn.pendingReplies[sn]
+	conn.repliesMu.Unlock()
+
+	if !ok {
+		return nil, fmt.Errorf("no pending reply for SN %d", sn)
+	}
+
+	defer func() {
+		conn.repliesMu.Lock()
+		delete(conn.pendingReplies, sn)
+		conn.repliesMu.Unlock()
+	}()
+
+	select {
+	case d := <-ch:
+		return d, nil
+	case <-time.After(timeout):
+		return nil, fmt.Errorf("timeout waiting for reply SN %d", sn)
+	case <-conn.Done():
+		return nil, errors.New("connection closed")
 	}
 }
 
@@ -292,16 +310,24 @@ func (conn *FutuApiConn) handleResponsePacket() {
 			}
 
 			// check if push or reply
-			if h.SerialNo == 0 {
+			if h.SerialNo == 0 || IsPushProto(h.ProtoID) {
 				if conn.pushHook != nil {
 					conn.pushHook(h.ProtoID, resp)
 				}
 			} else {
-				select {
-				case conn.replyQueue <- resp:
-				default:
-					log.Println("replyQueue is full, dropping packet")
+				conn.repliesMu.Lock()
+				ch, ok := conn.pendingReplies[h.SerialNo]
+				if ok {
+					select {
+					case ch <- resp:
+					default:
+						log.Printf("reply channel full for SN %d", h.SerialNo)
+					}
+				} else {
+					// Some replies might not be waited for, but we should log if it's unexpected
+					// log.Printf("unexpected reply packet SN %d ProtoID %d", h.SerialNo, h.ProtoID)
 				}
+				conn.repliesMu.Unlock()
 			}
 		}
 	}

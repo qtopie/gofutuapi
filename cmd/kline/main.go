@@ -140,8 +140,8 @@ func requestHistoryKLines(conn *gofutuapi.FutuApiConn, security *qotcommon.Secur
 				NextReqKey:  nextReqKey,
 			},
 		}
-		conn.SendProto(gofutuapi.QOT_REQUESTHISTORYKL, &req)
-		reply, err := conn.NextReplyPacket()
+		sn := conn.SendProto(gofutuapi.QOT_REQUESTHISTORYKL, &req)
+		reply, err := conn.WaitReply(sn, 10*time.Second)
 		if err != nil {
 			return nil, err
 		}
@@ -221,8 +221,8 @@ func fetchTradeSummary(conn *gofutuapi.FutuApiConn) *TradeSummary {
 			NeedGeneralSecAccount: &needGeneralSecAccount,
 		},
 	}
-	conn.SendProto(gofutuapi.TRD_GETACCLIST, &accReq)
-	reply, err := conn.NextReplyPacket()
+	sn := conn.SendProto(gofutuapi.TRD_GETACCLIST, &accReq)
+	reply, err := conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		summary.Errors = append(summary.Errors, fmt.Sprintf("get acc list failed: %v", err))
 		return summary
@@ -268,8 +268,8 @@ func fetchTradeSummary(conn *gofutuapi.FutuApiConn) *TradeSummary {
 				RefreshCache:     &refreshCache,
 			},
 		}
-		conn.SendProto(gofutuapi.TRD_GETORDERLIST, &orderReq)
-		reply, err = conn.NextReplyPacket()
+		sn := conn.SendProto(gofutuapi.TRD_GETORDERLIST, &orderReq)
+		reply, err = conn.WaitReply(sn, 10*time.Second)
 		if err != nil {
 			summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get order list failed: %v", accID, err))
 		} else {
@@ -298,8 +298,8 @@ func fetchTradeSummary(conn *gofutuapi.FutuApiConn) *TradeSummary {
 				RefreshCache: &refreshCache,
 			},
 		}
-		conn.SendProto(gofutuapi.TRD_GETPOSITIONLIST, &posReq)
-		reply, err = conn.NextReplyPacket()
+		sn = conn.SendProto(gofutuapi.TRD_GETPOSITIONLIST, &posReq)
+		reply, err = conn.WaitReply(sn, 10*time.Second)
 		if err != nil {
 			summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get position list failed: %v", accID, err))
 		} else {
@@ -328,8 +328,8 @@ func fetchTradeSummary(conn *gofutuapi.FutuApiConn) *TradeSummary {
 				RefreshCache: &refreshCache,
 			},
 		}
-		conn.SendProto(gofutuapi.TRD_GETFUNDS, &fundsReq)
-		reply, err = conn.NextReplyPacket()
+		sn = conn.SendProto(gofutuapi.TRD_GETFUNDS, &fundsReq)
+		reply, err = conn.WaitReply(sn, 10*time.Second)
 		if err != nil {
 			summary.Errors = append(summary.Errors, fmt.Sprintf("acc %d: get funds failed: %v", accID, err))
 		} else {
@@ -416,8 +416,8 @@ func main() {
 			Flag: &flag,
 		},
 	}
-	conn.SendProto(gofutuapi.GET_USER_INFO, &req)
-	reply, err := conn.NextReplyPacket()
+	sn := conn.SendProto(gofutuapi.GET_USER_INFO, &req)
+	reply, err := conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		log.Println(err)
 	} else {
@@ -467,8 +467,8 @@ func main() {
 			Session:              &session,
 		},
 	}
-	conn.SendProto(gofutuapi.QOT_SUB, &qotSubReq)
-	reply, err = conn.NextReplyPacket()
+	sn = conn.SendProto(gofutuapi.QOT_SUB, &qotSubReq)
+	reply, err = conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		log.Println("failed to get qot sub reply", err)
 	} else {
@@ -570,3 +570,4 @@ func main() {
 	}
 	fmt.Println("Main goroutine exiting.")
 }
+

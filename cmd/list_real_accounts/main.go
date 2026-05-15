@@ -33,8 +33,8 @@ func main() {
 			TrdCategory: &trdCategory,
 		},
 	}
-	conn.SendProto(gofutuapi.TRD_GETACCLIST, &accReq)
-	reply, err := conn.NextReplyPacket()
+	sn := conn.SendProto(gofutuapi.TRD_GETACCLIST, &accReq)
+	reply, err := conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		log.Fatalf("Get acc list failed: %v", err)
 	}
@@ -48,8 +48,8 @@ func main() {
 	for _, acc := range accResp.GetS2C().GetAccList() {
 		if acc.GetTrdEnv() == int32(trdcommon.TrdEnv_TrdEnv_Real) {
 			found = true
-			fmt.Printf("AccID: %d | Markets: %v\n", 
-				acc.GetAccID(), 
+			fmt.Printf("AccID: %d | Markets: %v\n",
+				acc.GetAccID(),
 				acc.GetTrdMarketAuthList())
 		}
 	}

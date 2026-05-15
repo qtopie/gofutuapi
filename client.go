@@ -1,13 +1,21 @@
 package gofutuapi
 
 import (
+	"time"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
 
 	"github.com/qtopie/gofutuapi/gen/common/getuserinfo"
 	"github.com/qtopie/gofutuapi/gen/qot/qotupdatebasicqot"
+	"github.com/qtopie/gofutuapi/gen/qot/qotupdatebroker"
+	"github.com/qtopie/gofutuapi/gen/qot/qotupdatekl"
+	"github.com/qtopie/gofutuapi/gen/qot/qotupdateorderbook"
+	"github.com/qtopie/gofutuapi/gen/qot/qotupdatepricereminder"
+	"github.com/qtopie/gofutuapi/gen/qot/qotupdatert"
+	"github.com/qtopie/gofutuapi/gen/qot/qotupdateticker"
 	"github.com/qtopie/gofutuapi/gen/trade/trdupdateorder"
+	"github.com/qtopie/gofutuapi/gen/trade/trdupdateorderfill"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -53,8 +61,22 @@ func (c *FutuClient) createPushMessage(protoId ProtoId) proto.Message {
 	switch protoId {
 	case TRD_UPDATEORDER:
 		return &trdupdateorder.Response{}
+	case TRD_UPDATEORDERFILL:
+		return &trdupdateorderfill.Response{}
 	case QOT_UPDATEBASICQOT:
 		return &qotupdatebasicqot.Response{}
+	case QOT_UPDATEKL:
+		return &qotupdatekl.Response{}
+	case QOT_UPDATERT:
+		return &qotupdatert.Response{}
+	case QOT_UPDATETICKER:
+		return &qotupdateticker.Response{}
+	case QOT_UPDATEORDERBOOK:
+		return &qotupdateorderbook.Response{}
+	case QOT_UPDATEBROKER:
+		return &qotupdatebroker.Response{}
+	case QOT_UPDATEPRICEREMINDER:
+		return &qotupdatepricereminder.Response{}
 	}
 	return nil
 }
@@ -72,9 +94,9 @@ func (c *FutuClient) GetUserInfo() (*getuserinfo.S2C, error) {
 			Flag: &flag,
 		},
 	}
-	c.Conn.SendProto(GET_USER_INFO, &req)
+	sn := c.Conn.SendProto(GET_USER_INFO, &req)
 
-	reply, err := c.Conn.NextReplyPacket()
+	reply, err := c.Conn.WaitReply(sn, 10*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("get user info failed: %w", err)
 	}
